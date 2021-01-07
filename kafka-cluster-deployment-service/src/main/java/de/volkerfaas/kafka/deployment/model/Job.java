@@ -12,10 +12,12 @@ public class Job extends Base {
     private String repository;
     private String branch;
     private Event event;
+    private Set<GitStatus> gitStatus;
 
     public Job() {
         super();
         this.tasks = new LinkedHashSet<>();
+        this.gitStatus = new LinkedHashSet<>();
     }
 
     public Job(Event event, String repository, String branch) {
@@ -59,6 +61,18 @@ public class Job extends Base {
     public void setEvent(Event event) {
         this.event = event;
     }
+
+    @OneToMany(mappedBy = "job", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OrderBy("id DESC")
+    public Set<GitStatus> getGitStatus() {
+        return gitStatus;
+    }
+
+    public void setGitStatus(Set<GitStatus> gitStatus) {
+        this.gitStatus = gitStatus;
+    }
+
+
 
     @Override
     public String toString() {

@@ -4,17 +4,13 @@ import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.TaskConfig;
 import de.volkerfaas.kafka.deployment.controller.model.SkipablePageRequest;
 import de.volkerfaas.kafka.deployment.controller.model.github.PushEvent;
-import de.volkerfaas.kafka.deployment.integration.GitRepository;
 import de.volkerfaas.kafka.deployment.integration.JobProducer;
 import de.volkerfaas.kafka.deployment.integration.JobRepository;
 import de.volkerfaas.kafka.deployment.model.Event;
 import de.volkerfaas.kafka.deployment.model.Job;
 import de.volkerfaas.kafka.deployment.model.Status;
 import de.volkerfaas.kafka.deployment.model.Task;
-import de.volkerfaas.kafka.deployment.service.BadEventException;
-import de.volkerfaas.kafka.deployment.service.JobService;
-import de.volkerfaas.kafka.deployment.service.NotFoundException;
-import de.volkerfaas.kafka.deployment.service.TaskService;
+import de.volkerfaas.kafka.deployment.service.*;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.commons.codec.binary.Hex;
@@ -51,16 +47,16 @@ public class JobServiceImpl implements JobService, Runnable {
 
     private final Config config;
     private final TaskService taskService;
-    private final GitRepository gitRepository;
+    private final GitService gitService;
     private final JobRepository jobRepository;
     private final JobProducer jobProducer;
     private final BlockingQueue<Long> queue;
 
     @Autowired
-    public JobServiceImpl(Config config, TaskService taskService, GitRepository gitRepository, JobRepository jobRepository, JobProducer jobProducer) {
+    public JobServiceImpl(Config config, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
         this.config = config;
+        this.gitService = gitService;
         this.taskService = taskService;
-        this.gitRepository = gitRepository;
         this.jobRepository = jobRepository;
         this.jobProducer = jobProducer;
         this.queue = new LinkedBlockingQueue<>();
@@ -110,7 +106,8 @@ public class JobServiceImpl implements JobService, Runnable {
     public void triggerNewJob() throws GitAPIException, InterruptedException {
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
-        if (hasRepositoryChanged(repository, branch)) {
+        final Job job = jobRepository.findLatest().orElse(null);
+        if (gitService.isRepositoryChanged(repository, branch, job)) {
             Event event = new Event();
             event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
             final long jobId = createJob(event, repository, branch);
@@ -247,34 +244,6 @@ public class JobServiceImpl implements JobService, Runnable {
         return items[2];
     }
 
-    private boolean hasRepositoryChanged(String repository, String branch) throws GitAPIException {
-        final Job job = jobRepository.findLatest().orElse(null);
-        if (Objects.isNull(job)) {
-            return true;
-        }
-        final Event event = job.getEvent();
-        final String headCommitId = event.getHeadCommitId();
-        LOGGER.info("[poll] Last Built Revision: Revision {} (refs/remotes/origin/{})", headCommitId, branch);
-        final String uri = "git@github.com:" + repository + ".git";
-        final String remoteObjectId = gitRepository.getRemoteObjectId(uri, branch).orElse(null);
-        if (Objects.isNull(remoteObjectId)) {
-            return false;
-        }
 
-        final boolean hasChanged = !Objects.equals(headCommitId, remoteObjectId);
-        if (!hasChanged) {
-            switch (job.getStatus()) {
-                case SUCCESS -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - already built by {}", branch, remoteObjectId, job.getId());
-                case FAILED -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - already built with failure by {}", branch, remoteObjectId, job.getId());
-                case RUNNING -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - is building by {}", branch, remoteObjectId, job.getId());
-                case CREATED -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - to be build by {}", branch, remoteObjectId, job.getId());
-            }
-            LOGGER.info("No changes");
-        } else {
-            LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - not yet build", branch, remoteObjectId);
-        }
-
-        return hasChanged;
-    }
 
 }

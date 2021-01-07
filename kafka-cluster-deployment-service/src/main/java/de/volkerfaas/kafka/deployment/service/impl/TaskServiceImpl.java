@@ -2,9 +2,8 @@ package de.volkerfaas.kafka.deployment.service.impl;
 
 import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.TaskConfig;
-import de.volkerfaas.kafka.deployment.integration.GitRepository;
-import de.volkerfaas.kafka.deployment.integration.impl.TaskProgressMonitor;
 import de.volkerfaas.kafka.deployment.model.*;
+import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -19,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,11 +26,11 @@ public class TaskServiceImpl implements TaskService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     private final Config config;
-    private final GitRepository gitRepository;
+    private final GitService gitService;
 
-    public TaskServiceImpl(Config config, GitRepository gitRepository) {
+    public TaskServiceImpl(Config config, GitService gitService) {
         this.config = config;
-        this.gitRepository = gitRepository;
+        this.gitService = gitService;
     }
 
     @Override
@@ -51,27 +49,9 @@ public class TaskServiceImpl implements TaskService {
         try {
             final File directory = new File(config.getWorkingDirectory());
             final String branch = config.getGit().getBranch();
-            Git git = gitRepository.openRepository(branch, directory).orElse(null);
-            if (Objects.isNull(git)) {
-                final String repository = config.getGit().getRepository();
-                final String uri = "git@github.com:" + repository + ".git";
-                final String command = "git clone " + uri + " .";
-                task.setCommand(command);
-                git = gitRepository.cloneRepository(uri, branch, directory, new TaskProgressMonitor(task));
-            } else {
-                final String command = "git pull";
-                task.setCommand(command);
-                gitRepository.pullRepository(git, new TaskProgressMonitor(task));
-            }
-            final RevCommit latestCommit = git.log().setMaxCount(1).call().iterator().next();
+            final Git git = gitService.openOrCloneRepository(task, directory, branch);
             final Job job = task.getJob();
-            final Event event = job.getEvent();
-            event.setRef("refs/heads/" + branch);
-            event.setHeadCommitMessage(latestCommit.getShortMessage());
-            event.setHeadCommitId(latestCommit.getId().name());
-            event.setPusherName(latestCommit.getCommitterIdent().getName());
-            event.setPusherEmail(latestCommit.getCommitterIdent().getEmailAddress());
-            event.setHeadCommitTimestamp(new Date(latestCommit.getCommitTime()));
+            updateJobEvent(branch, git, job);
             git.close();
             task.setStatus(Status.SUCCESS);
             return 0;
@@ -81,6 +61,7 @@ public class TaskServiceImpl implements TaskService {
             return 1;
         }
     }
+
 
     @Override
     public int executeCommandLineTask(Task task) throws IOException, InterruptedException {
@@ -113,6 +94,17 @@ public class TaskServiceImpl implements TaskService {
         LOGGER.debug(command);
 
         return builder.start();
+    }
+
+    private void updateJobEvent(String branch, Git git, Job job) throws GitAPIException {
+        final RevCommit latestCommit = git.log().setMaxCount(1).call().iterator().next();
+        final Event event = job.getEvent();
+        event.setRef("refs/heads/" + branch);
+        event.setHeadCommitMessage(latestCommit.getShortMessage());
+        event.setHeadCommitId(latestCommit.getId().name());
+        event.setPusherName(latestCommit.getCommitterIdent().getName());
+        event.setPusherEmail(latestCommit.getCommitterIdent().getEmailAddress());
+        event.setHeadCommitTimestamp(new Date(latestCommit.getCommitTime()));
     }
 
 }
