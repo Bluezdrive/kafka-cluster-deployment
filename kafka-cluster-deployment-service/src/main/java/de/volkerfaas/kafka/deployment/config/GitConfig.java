@@ -6,6 +6,7 @@ public class GitConfig {
     private String secret;
     private String repository;
     private String privateKey;
+    private long pollRate;
 
     public String getBranch() {
         return branch;
@@ -39,4 +40,11 @@ public class GitConfig {
         this.privateKey = privateKey;
     }
 
+    public long getPollRate() {
+        return pollRate;
+    }
+
+    public void setPollRate(long pollRate) {
+        this.pollRate = pollRate;
+    }
 }
