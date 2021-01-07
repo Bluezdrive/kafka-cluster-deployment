@@ -43,7 +43,7 @@
 
 .icon-failed,
 .failed div {
-    color: red;
+    color: #db4545;
 }
 
 .list-group {
@@ -55,8 +55,8 @@
 .list-group-item.active-failed:hover {
     z-index: 2;
     color: white;
-    background-color: red;
-    border-color: red;
+    background-color: #db4545;
+    border-color: #db4545;
 }
 
 .icon-created,
