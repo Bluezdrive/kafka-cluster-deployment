@@ -3,7 +3,7 @@
     overflow-y: scroll;
     border: 1px solid rgba(0, 0, 0, 0.125);
     border-radius: .25rem;
-    bottom: 0px;
+    bottom: 0;
 }
 
 .list-scroll .card {

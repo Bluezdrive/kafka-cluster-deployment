@@ -6,7 +6,7 @@ public class GitConfig {
     private String secret;
     private String repository;
     private String privateKey;
-    private long pollRate;
+    private String cron;
 
     public String getBranch() {
         return branch;
@@ -40,11 +40,11 @@ public class GitConfig {
         this.privateKey = privateKey;
     }
 
-    public long getPollRate() {
-        return pollRate;
+    public String getCron() {
+        return cron;
     }
 
-    public void setPollRate(long pollRate) {
-        this.pollRate = pollRate;
+    public void setCron(String cron) {
+        this.cron = cron;
     }
 }

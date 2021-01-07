@@ -106,7 +106,7 @@ public class JobServiceImpl implements JobService, Runnable {
         return jobId;
     }
 
-    @Scheduled(fixedDelayString = "${config.git.poll-rate}")
+    @Scheduled(cron = "${config.git.cron:-}")
     public void triggerNewJob() throws GitAPIException, InterruptedException {
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
