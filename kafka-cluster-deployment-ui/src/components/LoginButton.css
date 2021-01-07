@@ -1,0 +1,37 @@
+.btn-github {
+    color: white!important;
+    background-color: #24292E!important;
+    border-color: #24292E!important;
+}
+
+.btn-github.focus, .btn-github:focus, .btn-github:hover {
+    background-color: #121619!important;
+    border-color: #121619!important;
+}
+
+.btn-facebook {
+    color: white!important;
+    background-color: #1877f2!important;
+    border-color: #1877f2!important;
+}
+
+.btn-facebook.focus, .btn-facebook:focus, .btn-facebook:hover {
+    background-color: #166fe5!important;
+    border-color: #166fe5!important;
+}
+
+.btn-google {
+    color: #7F7F7F!important;
+    background-color: #FFFFFF!important;
+    border-color: #9FA6AD!important;
+}
+
+.btn-google svg {
+    border-color: #7F7F7F!important;
+}
+
+.btn-google.focus, .btn-google:focus, .btn-google:hover {
+    background-color: #EDECEA!important;
+}
+
+/*121315*/

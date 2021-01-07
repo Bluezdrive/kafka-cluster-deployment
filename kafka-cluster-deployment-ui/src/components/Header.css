@@ -1,0 +1,23 @@
+.jumbotron {
+    padding: .5rem 1rem!important;
+}
+
+.jumbotron .logo {
+    border: 1px solid white;
+    border-radius: 8px;
+    height: 48px;
+    padding: 9px;
+}
+
+.jumbotron .title {
+    color: white;
+}
+
+.jumbotron {
+    padding: 1rem 1rem!important;
+    margin-bottom: 1rem!important;
+}
+
+.bg-jumbotron {
+    background-color: darkslategray!important;
+}

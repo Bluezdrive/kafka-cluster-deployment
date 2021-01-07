@@ -1,0 +1,61 @@
+.accordion .btn {
+    border: none!important;
+    line-height: 1.5rem;
+    padding: 0 .75rem 0 0!important;
+    float: left;
+    width: 26px;
+}
+.accordion .btn:before {
+    content: "▼";
+}
+
+.accordion .btn:hover {
+    text-decoration: none;
+}
+
+.accordion .btn.collapsed:before {
+    content: "▶";
+}
+
+.accordion .card .card-header .icon {
+    float: right;
+}
+
+.accordion .card .card-header .btn {
+    padding-left: 0;
+}
+
+.card-body-nested {
+    padding: 0!important;
+}
+
+.card-body-nested .card {
+    border: none;
+}
+
+.card-body-nested .card:not(:last-of-type) {
+    border-bottom: 1px solid rgba(0,0,0,.125)!important;
+}
+
+.logs {
+    background-color: black;
+}
+
+.logs .log-line {
+    line-height: .6rem!important;
+
+}
+
+code {
+    color: black!important;
+}
+
+.logs code {
+    color: lightgrey!important;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: .6rem!important;
+    white-space: pre;
+}

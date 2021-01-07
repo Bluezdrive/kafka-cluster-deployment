@@ -1,0 +1,92 @@
+.list-scroll {
+    max-height: calc(100vh - 76px - 48px - (1rem * 4));
+    overflow-y: scroll;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: .25rem;
+    bottom: 0px;
+}
+
+.list-scroll .card {
+    border: none;
+}
+
+.list-group-item:first-child {
+    border-top: none!important;
+}
+
+.list-group-item {
+    border-left: none!important;
+    border-right: none!important;
+}
+
+.list-group-item:nth-last-child(2),
+.list-group-item:last-child {
+    border-bottom: none!important;
+}
+
+.list-group-item:last-child {
+    border-top: 1px solid rgba(0, 0, 0, 0.125)!important;
+}
+
+.icon-success,
+.success div {
+    color: green;
+}
+
+.list-group-item.active-success,
+.list-group-item.active-success:hover {
+    z-index: 2;
+    color: white;
+    background-color: green;
+    border-color: green;
+}
+
+.icon-failed,
+.failed div {
+    color: red;
+}
+
+.list-group {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.list-group-item.active-failed,
+.list-group-item.active-failed:hover {
+    z-index: 2;
+    color: white;
+    background-color: red;
+    border-color: red;
+}
+
+.icon-created,
+.created div {
+    color: grey;
+}
+
+.icon-running,
+.running div {
+    color: darkgoldenrod;
+}
+
+.list-group-item.active-created,
+.list-group-item.active-created:hover {
+    z-index: 2;
+    color: black;
+    background-color: grey;
+    border-color: grey;
+}
+
+.list-group-item.active-running,
+.list-group-item.active-running:hover {
+    z-index: 2;
+    color: black;
+    background-color: goldenrod;
+    border-color: goldenrod;
+}
+
+.loader {
+    text-align: center;
+    color: grey;
+    font-size: 3em;
+}

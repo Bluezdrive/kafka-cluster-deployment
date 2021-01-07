@@ -1,0 +1,38 @@
+server:
+  servlet:
+    session:
+      persistent: false
+management:
+  metrics:
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, info, auditevents, prometheus
+      #base-path: /
+      #path-mapping:
+      #  prometheus: /metrics
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: true
+    properties:
+      "[hibernate.generate_statistics]": true
+logging:
+  level:
+    root: info
+    org.hibernate: warn
