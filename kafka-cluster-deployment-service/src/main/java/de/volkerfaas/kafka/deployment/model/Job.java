@@ -1,5 +1,10 @@
 package de.volkerfaas.kafka.deployment.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
 import javax.persistence.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -29,6 +34,7 @@ public class Job extends Base {
 
     @OneToMany(mappedBy = "job", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @OrderBy("orderId ASC")
+    @JsonManagedReference(value = "tasks")
     public Set<Task> getTasks() {
         return tasks;
     }
@@ -54,6 +60,7 @@ public class Job extends Base {
     }
 
     @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference(value = "event")
     public Event getEvent() {
         return event;
     }
@@ -64,6 +71,7 @@ public class Job extends Base {
 
     @OneToMany(mappedBy = "job", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @OrderBy("id DESC")
+    @JsonManagedReference(value = "git-statuses")
     public Set<GitStatus> getGitStatus() {
         return gitStatus;
     }

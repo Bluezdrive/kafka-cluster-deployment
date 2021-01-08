@@ -1,5 +1,7 @@
 package de.volkerfaas.kafka.deployment.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -8,6 +10,7 @@ import javax.persistence.*;
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 abstract class Base {
 
     private long id;
@@ -43,8 +46,8 @@ abstract class Base {
         return startTimeMillis;
     }
 
-    public void setStartTimeMillis(long duration) {
-        this.startTimeMillis = duration;
+    public void setStartTimeMillis(long startTimeMillis) {
+        this.startTimeMillis = startTimeMillis;
     }
 
     @Enumerated(EnumType.STRING)

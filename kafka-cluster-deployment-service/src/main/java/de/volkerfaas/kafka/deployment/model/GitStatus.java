@@ -1,64 +1,30 @@
 package de.volkerfaas.kafka.deployment.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.*;
 
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name="git_status")
-public class GitStatus {
+public class GitStatus extends Base {
 
-    private long id;
-    private long createdDate;
-    private long lastModifiedDate;
     private String repository;
     private String branch;
     private String headCommitId;
     private String remoteObjectId;
     private boolean changed;
+    private String error;
     private Job job;
 
     public GitStatus() {
     }
 
-    public GitStatus(String repository, String branch, String headCommitId, String remoteObjectId, boolean changed) {
+    public GitStatus(String repository, String branch) {
+        this.setStartTimeMillis(System.currentTimeMillis());
         this.repository = repository;
         this.branch = branch;
-        this.headCommitId = headCommitId;
-        this.remoteObjectId = remoteObjectId;
-        this.changed = changed;
-    }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    @CreatedDate
-    public long getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(long createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    @LastModifiedDate
-    public long getLastModifiedDate() {
-        return lastModifiedDate;
-    }
-
-    public void setLastModifiedDate(long lastModifiedDate) {
-        this.lastModifiedDate = lastModifiedDate;
     }
 
     public String getRepository() {
@@ -101,9 +67,17 @@ public class GitStatus {
         this.changed = changed;
     }
 
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="job_id", nullable = false)
-    @JsonIgnore
+    @JoinColumn(name="job_id")
+    @JsonIdentityReference(alwaysAsId = true)
     public Job getJob() {
         return job;
     }

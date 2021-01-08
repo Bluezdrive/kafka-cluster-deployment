@@ -14,7 +14,6 @@ import de.volkerfaas.kafka.deployment.service.*;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.commons.codec.binary.Hex;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,7 +102,7 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     @Scheduled(cron = "${config.git.cron:-}")
-    public void triggerNewJob() throws GitAPIException, InterruptedException {
+    public void triggerNewJob() throws InterruptedException {
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
         final Job job = jobRepository.findLatest().orElse(null);

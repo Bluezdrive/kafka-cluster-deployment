@@ -49,7 +49,7 @@ public class TaskServiceImpl implements TaskService {
         try {
             final File directory = new File(config.getWorkingDirectory());
             final String branch = config.getGit().getBranch();
-            final Git git = gitService.openOrCloneRepository(task, directory, branch);
+            final Git git = gitService.cloneOrPullRepository(task, directory, branch);
             final Job job = task.getJob();
             updateJobEvent(branch, git, job);
             git.close();
@@ -57,6 +57,7 @@ public class TaskServiceImpl implements TaskService {
             return 0;
         } catch (GitAPIException | IOException e) {
             LOGGER.error(e.getMessage());
+            task.addLog(e.getMessage());
             task.setStatus(Status.FAILED);
             return 1;
         }
@@ -71,7 +72,7 @@ public class TaskServiceImpl implements TaskService {
                 .peek(LOGGER::info)
                 .collect(Collectors.joining(System.lineSeparator()));
         final int exitCode = process.waitFor();
-        task.setLog(log);
+        task.addLog(log);
         task.setStatus(exitCode == 0 ? Status.SUCCESS : Status.FAILED);
         task.setEndTimeMillis(System.currentTimeMillis());
         task.setExitCode(exitCode);
