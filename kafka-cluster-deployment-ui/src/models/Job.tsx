@@ -33,9 +33,21 @@ export type Job = Base & {
     event: Event;
 }
 
+export type GitPollingLog = Base & {
+    repository: string;
+    branch: string;
+    headCommitId: string;
+    remoteObjectId: string;
+    changed: boolean;
+    error: string;
+    job: number;
+}
+
 export type Base = {
     id: number;
     startTimeMillis: number;
     status: Status;
     endTimeMillis: number;
+    createdDate: number;
+    lastModifiedDate: number;
 }

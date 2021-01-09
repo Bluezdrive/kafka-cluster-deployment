@@ -1,5 +1,5 @@
 .list-scroll {
-    max-height: calc(100vh - 76px - 48px - (1rem * 4));
+    max-height: calc(100vh - 76px - 48px - (1rem * 4) - 33px);
     overflow-y: scroll;
     border: 1px solid rgba(0, 0, 0, 0.125);
     border-radius: .25rem;
@@ -12,6 +12,14 @@
 
 .list-group-item:first-child {
     border-top: none!important;
+}
+
+.github-status {
+    text-align: center;
+}
+
+.github-status pre {
+    text-align: left;
 }
 
 .list-group-item {

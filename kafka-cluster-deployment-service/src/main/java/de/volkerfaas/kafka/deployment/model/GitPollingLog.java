@@ -1,14 +1,12 @@
 package de.volkerfaas.kafka.deployment.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.*;
 
 @Entity
-@Table(name="git_status")
-public class GitStatus extends Base {
+@Table(name="git_polling_log")
+public class GitPollingLog extends Base {
 
     private String repository;
     private String branch;
@@ -18,10 +16,10 @@ public class GitStatus extends Base {
     private String error;
     private Job job;
 
-    public GitStatus() {
+    public GitPollingLog() {
     }
 
-    public GitStatus(String repository, String branch) {
+    public GitPollingLog(String repository, String branch) {
         this.setStartTimeMillis(System.currentTimeMillis());
         this.repository = repository;
         this.branch = branch;

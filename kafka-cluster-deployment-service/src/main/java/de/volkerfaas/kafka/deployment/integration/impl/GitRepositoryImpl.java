@@ -83,6 +83,7 @@ public class GitRepositoryImpl implements GitRepository {
     public Optional<String> getRemoteObjectId(String uri, String branch) throws GitAPIException {
         final Map<String, Ref> stringRefMap = Git.lsRemoteRepository()
                 .setRemote(uri)
+                .setHeads(true)
                 .setTransportConfigCallback(transportConfigCallback)
                 .callAsMap();
         LOGGER.info("Found {} remote heads on {}", stringRefMap.size(), uri);

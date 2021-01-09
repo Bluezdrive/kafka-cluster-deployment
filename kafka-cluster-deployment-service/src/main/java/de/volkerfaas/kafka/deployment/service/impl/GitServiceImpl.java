@@ -52,25 +52,25 @@ public class GitServiceImpl implements GitService {
     }
 
     @Override
-    public GitStatus findLatest() throws NotFoundException {
-        return gitStatusRepository.findLatest().orElseThrow(() -> new NotFoundException(GitStatus.class, 0L));
+    public GitPollingLog findLatest() throws NotFoundException {
+        return gitStatusRepository.findLatest().orElseThrow(() -> new NotFoundException(GitPollingLog.class, 0L));
     }
 
     @Override
     public boolean isRepositoryChanged(String repository, String branch, Job job) {
-        final GitStatus gitStatus = new GitStatus(repository, branch);
+        final GitPollingLog gitPollingLog = new GitPollingLog(repository, branch);
         if (Objects.isNull(job)) {
             LOGGER.info("[poll] Last Built Revision: No job available");
-            createGitStatusEntry(gitStatus, true, Status.FAILED, "No job available");
+            createGitStatusEntry(gitPollingLog, true, Status.FAILED, "No job available");
 
             return true;
         }
-        gitStatus.setJob(job);
+        gitPollingLog.setJob(job);
 
         final Event event = job.getEvent();
         if (Objects.isNull(event)) {
             LOGGER.info("[poll] Last Built Revision: No event for job {} available", job.getId());
-            createGitStatusEntry(gitStatus, true, Status.FAILED, "No event for job " + job.getId() + " available");
+            createGitStatusEntry(gitPollingLog, true, Status.FAILED, "No event for job " + job.getId() + " available");
 
             return true;
         }
@@ -81,18 +81,18 @@ public class GitServiceImpl implements GitService {
         } else {
             LOGGER.info("[poll] Last Built Revision: Revision {} (refs/remotes/origin/{})", headCommitId, branch);
         }
-        gitStatus.setHeadCommitId(headCommitId);
+        gitPollingLog.setHeadCommitId(headCommitId);
 
         final String uri = "git@github.com:" + repository + ".git";
         try {
             final String remoteObjectId = gitRepository.getRemoteObjectId(uri, branch).orElse(null);
             if (Objects.isNull(remoteObjectId)) {
                 LOGGER.error("[poll] No remote head revision on refs/heads/{}", branch);
-                createGitStatusEntry(gitStatus, false, Status.FAILED, "No remote object ID found");
+                createGitStatusEntry(gitPollingLog, false, Status.FAILED, "No remote object ID found");
 
                 return false;
             }
-            gitStatus.setRemoteObjectId(remoteObjectId);
+            gitPollingLog.setRemoteObjectId(remoteObjectId);
 
             if (Objects.equals(headCommitId, remoteObjectId)) {
                 switch (job.getStatus()) {
@@ -102,45 +102,45 @@ public class GitServiceImpl implements GitService {
                     case CREATED -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - to be build by {}", branch, remoteObjectId, job.getId());
                 }
                 LOGGER.info("No changes");
-                updateGitStatusEntry(gitStatus, false, Status.SUCCESS);
+                updateGitStatusEntry(gitPollingLog, false, Status.SUCCESS);
 
                 return false;
             }
 
             LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - not yet build", branch, remoteObjectId);
-            createGitStatusEntry(gitStatus, true, Status.SUCCESS, null);
+            createGitStatusEntry(gitPollingLog, true, Status.SUCCESS, null);
 
             return true;
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
-            createGitStatusEntry(gitStatus, false, Status.FAILED, e.getMessage());
+            createGitStatusEntry(gitPollingLog, false, Status.FAILED, e.getMessage());
 
             return false;
         }
     }
 
-    private void createGitStatusEntry(GitStatus gitStatus, boolean changed, Status status, String error) {
-        gitStatus.setChanged(changed);
-        gitStatus.setStatus(status);
-        gitStatus.setEndTimeMillis(System.currentTimeMillis());
-        gitStatus.setError(error);
-        gitStatusRepository.saveAndFlush(gitStatus);
+    private void createGitStatusEntry(GitPollingLog gitPollingLog, boolean changed, Status status, String error) {
+        gitPollingLog.setChanged(changed);
+        gitPollingLog.setStatus(status);
+        gitPollingLog.setEndTimeMillis(System.currentTimeMillis());
+        gitPollingLog.setError(error);
+        gitStatusRepository.saveAndFlush(gitPollingLog);
     }
 
-    private void updateGitStatusEntry(GitStatus gitStatus, boolean changed, Status status) {
-        final String repository = gitStatus.getRepository();
-        final String branch = gitStatus.getBranch();
-        final GitStatus latestGitStatus = gitStatusRepository.findLatestSuccessfulNotChangedByRepositoryAndBranch(repository, branch).orElse(new GitStatus());
-        latestGitStatus.setRepository(repository);
-        latestGitStatus.setBranch(branch);
-        latestGitStatus.setHeadCommitId(gitStatus.getHeadCommitId());
-        latestGitStatus.setRemoteObjectId(gitStatus.getRemoteObjectId());
-        latestGitStatus.setChanged(changed);
-        latestGitStatus.setStatus(status);
-        latestGitStatus.setJob(gitStatus.getJob());
-        latestGitStatus.setStartTimeMillis(gitStatus.getStartTimeMillis());
-        latestGitStatus.setEndTimeMillis(System.currentTimeMillis());
-        gitStatusRepository.saveAndFlush(latestGitStatus);
+    private void updateGitStatusEntry(GitPollingLog gitPollingLog, boolean changed, Status status) {
+        final String repository = gitPollingLog.getRepository();
+        final String branch = gitPollingLog.getBranch();
+        final GitPollingLog latestGitPollingLog = gitStatusRepository.findLatestSuccessfulNotChangedByRepositoryAndBranch(repository, branch).orElse(new GitPollingLog());
+        latestGitPollingLog.setRepository(repository);
+        latestGitPollingLog.setBranch(branch);
+        latestGitPollingLog.setHeadCommitId(gitPollingLog.getHeadCommitId());
+        latestGitPollingLog.setRemoteObjectId(gitPollingLog.getRemoteObjectId());
+        latestGitPollingLog.setChanged(changed);
+        latestGitPollingLog.setStatus(status);
+        latestGitPollingLog.setJob(gitPollingLog.getJob());
+        latestGitPollingLog.setStartTimeMillis(gitPollingLog.getStartTimeMillis());
+        latestGitPollingLog.setEndTimeMillis(System.currentTimeMillis());
+        gitStatusRepository.saveAndFlush(latestGitPollingLog);
     }
 
 }

@@ -1,6 +1,6 @@
 package de.volkerfaas.kafka.deployment.service;
 
-import de.volkerfaas.kafka.deployment.model.GitStatus;
+import de.volkerfaas.kafka.deployment.model.GitPollingLog;
 import de.volkerfaas.kafka.deployment.model.Job;
 import de.volkerfaas.kafka.deployment.model.Task;
 import org.eclipse.jgit.api.Git;
@@ -12,7 +12,7 @@ import java.io.IOException;
 public interface GitService {
     Git cloneOrPullRepository(Task task, File directory, String branch) throws IOException, GitAPIException;
 
-    GitStatus findLatest() throws NotFoundException;
+    GitPollingLog findLatest() throws NotFoundException;
 
     boolean isRepositoryChanged(String repository, String branch, Job job);
 }

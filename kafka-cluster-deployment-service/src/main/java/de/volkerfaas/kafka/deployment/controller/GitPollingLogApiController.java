@@ -1,7 +1,7 @@
 package de.volkerfaas.kafka.deployment.controller;
 
 import de.volkerfaas.kafka.deployment.controller.model.ErrorResponse;
-import de.volkerfaas.kafka.deployment.model.GitStatus;
+import de.volkerfaas.kafka.deployment.model.GitPollingLog;
 import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,18 +15,18 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
-public class GitStatusApiController {
+public class GitPollingLogApiController {
 
     private final GitService gitService;
 
     @Autowired
-    public GitStatusApiController(GitService gitService) {
+    public GitPollingLogApiController(GitService gitService) {
         this.gitService = gitService;
     }
 
-    @GetMapping(path = "/api/gitStatus/latest", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/api/gitPollingLogs/latest", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    public GitStatus findLatest() throws NotFoundException {
+    public GitPollingLog findLatest() throws NotFoundException {
         return gitService.findLatest();
     }
 
