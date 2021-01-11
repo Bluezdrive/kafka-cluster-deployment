@@ -267,10 +267,8 @@ class JobList extends Component<JobListProps, JobListState> {
                                 </div>
                             </div>
                         </div>
-                        <div className="github-status">
-                            <button type="button" className={"btn btn-link"} onClick={this.handleOnClickGitPollingLogButton}>
-                                <small>Git Polling Log</small>
-                            </button>
+                        <div className="github-status p-3">
+                            <button type="button" className={"btn btn-info btn-sm"} onClick={this.handleOnClickGitPollingLogButton}>Git Polling Log</button>
                             <GitPollingLogDialog gitPollingLog={this.state.gitPollingLog} />
                         </div>
                     </div>
