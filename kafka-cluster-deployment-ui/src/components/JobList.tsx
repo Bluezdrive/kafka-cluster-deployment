@@ -261,13 +261,13 @@ class JobList extends Component<JobListProps, JobListState> {
                     <div className="col-md-4">
                         <div className="list-scroll">
                             <div className="list-group">
-                                {jobs.map(job => <JobButton key={job.id} active={this.state.jobId === job.id} job={job} handleOnClick={this.handleOnClickJobButton}/>)}
+                                {jobs.map((job: Job, index: number) => <JobButton key={job.id} active={this.state.jobId === job.id} job={job} firstItem={index === 0} handleOnClick={this.handleOnClickJobButton}/>)}
                                 <div hidden={jobs.length >= this.state.total} className="list-group-item">
                                     <button className={"btn btn-sm btn-block btn-primary"} onClick={this.handleOnClickLoadMoreJobsButton}>Load more jobs...</button>
                                 </div>
                             </div>
                         </div>
-                        <div className="github-status p-3">
+                        <div className="github-status pt-3">
                             <button type="button" className={"btn btn-info btn-sm"} onClick={this.handleOnClickGitPollingLogButton}>Git Polling Log</button>
                             <GitPollingLogDialog gitPollingLog={this.state.gitPollingLog} />
                         </div>

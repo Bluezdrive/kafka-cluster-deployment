@@ -1,5 +1,6 @@
 package de.volkerfaas.kafka.deployment.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.*;
@@ -15,6 +16,7 @@ public class Job extends Base {
     private String branch;
     private Event event;
     private Set<GitPollingLog> gitPollingLogs;
+    private Job reference;
 
     public Job() {
         super();
@@ -77,7 +79,16 @@ public class Job extends Base {
         this.gitPollingLogs = gitPollingLogs;
     }
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference(value = "reference")
+    @JsonIdentityReference(alwaysAsId = true)
+    public Job getReference() {
+        return reference;
+    }
 
+    public void setReference(Job reference) {
+        this.reference = reference;
+    }
 
     @Override
     public String toString() {

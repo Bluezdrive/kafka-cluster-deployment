@@ -31,6 +31,7 @@ export type Job = Base & {
     repository: string;
     branch: string;
     event: Event;
+    reference: number;
 }
 
 export type GitPollingLog = Base & {
@@ -50,4 +51,16 @@ export type Base = {
     endTimeMillis: number;
     createdDate: number;
     lastModifiedDate: number;
+}
+
+export type JobResponse = Error & {
+    jobId: number;
+}
+
+export type Error = {
+    timestamp: number;
+    status: number;
+    error: string;
+    message: string;
+    path: string;
 }

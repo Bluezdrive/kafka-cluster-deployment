@@ -7,6 +7,7 @@ type TextWithIconProps = {
     className: string;
     icon: IconDefinition;
     text: JSX.Element | string;
+    hidden?: boolean;
 }
 
 class TextWithIcon extends Component<TextWithIconProps, any> {
@@ -19,7 +20,7 @@ class TextWithIcon extends Component<TextWithIconProps, any> {
     public render = (): ReactNode => {
         if (this.props.display) {
             return (
-                <div className={this.props.className}>
+                <div className={this.props.className} hidden={this.props.hidden}>
                     <small>
                         <span className={"symbol"}><FontAwesomeIcon icon={this.props.icon}/></span> {this.props.text}
                     </small>

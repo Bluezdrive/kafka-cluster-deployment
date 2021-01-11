@@ -101,11 +101,28 @@ public class JobServiceImpl implements JobService, Runnable {
         return jobId;
     }
 
-    @Scheduled(cron = "${config.git.cron:-}")
-    public void triggerNewJob() throws InterruptedException {
+    @Override
+    public long restartJob(long jobId) throws BadEventException, InterruptedException {
+        final Job job = jobRepository.findLatest().orElse(null);
+        if (Objects.nonNull(job) && !Objects.equals(Status.FAILED, job.getStatus())) {
+            throw new BadEventException("status of latest job", job.getStatus().toString());
+        }
+        Event event = new Event();
+        event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
+        final long restartedJobId = createJob(event, repository, branch, job);
+        queue.put(restartedJobId);
+        LOGGER.info("Put restarted job into queue with id {}", restartedJobId);
+
+        return restartedJobId;
+    }
+
+    @Scheduled(cron = "${config.git.cron:-}")
+    public void triggerNewJob() throws InterruptedException {
         final Job job = jobRepository.findLatest().orElse(null);
+        final String repository = config.getGit().getRepository();
+        final String branch = config.getGit().getBranch();
         if (gitService.isRepositoryChanged(repository, branch, job)) {
             Event event = new Event();
             event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
@@ -183,10 +200,13 @@ public class JobServiceImpl implements JobService, Runnable {
         }
     }
 
-
-
     @Transactional
     public long createJob(Event event, String repository, String branch) {
+        return createJob(event, repository, branch, null);
+    }
+
+    @Transactional
+    public long createJob(Event event, String repository, String branch, Job reference) {
         final Job job = new Job(event, repository, branch);
         final Map<String, TaskConfig> taskConfigs = config.getTasks();
         final Set<Task> tasks = taskConfigs.entrySet().stream()
@@ -194,6 +214,7 @@ public class JobServiceImpl implements JobService, Runnable {
                 .map(entry -> taskService.create(job, entry.getKey(), entry.getValue()))
                 .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparingInt(Task::getOrderId))));
         job.setTasks(tasks);
+        job.setReference(reference);
         final Job createdJob = save(job);
         LOGGER.info("Created job {}", createdJob.getId());
 
