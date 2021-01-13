@@ -44,6 +44,10 @@ export type GitPollingLog = Base & {
     job: number;
 }
 
+export type Schedule = {
+    schedule: string;
+}
+
 export type Base = {
     id: number;
     startTimeMillis: number;

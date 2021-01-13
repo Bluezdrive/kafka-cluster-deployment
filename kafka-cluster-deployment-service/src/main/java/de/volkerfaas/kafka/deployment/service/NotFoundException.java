@@ -11,6 +11,11 @@ public class NotFoundException extends Exception {
         this.id = id;
     }
 
+    public NotFoundException(String message) {
+        super(message);
+        this.id = 0L;
+    }
+
     public Object getId() {
         return id;
     }

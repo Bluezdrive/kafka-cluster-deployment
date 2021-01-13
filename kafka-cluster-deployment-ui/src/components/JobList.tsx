@@ -1,5 +1,5 @@
 import React, {Component, ReactNode} from "react";
-import {GitPollingLog, Job} from "../models/Job";
+import {GitPollingLog, Job, Schedule} from "../models/Job";
 import JobButton from "./JobButton";
 import JobDetails from "./JobDetails";
 import "./JobList.css"
@@ -16,7 +16,7 @@ import GitPollingLogDialog from "./GitPollingLogDialog";
 const PAGE_SIZE: number = 10;
 
 type JobListProps = {
-    topic: string
+    topic: string,
 }
 
 type JobListState = {
@@ -29,6 +29,7 @@ type JobListState = {
     page: number;
     total: number;
     gitPollingLog?: GitPollingLog;
+    schedule?: string;
 }
 
 class JobList extends Component<JobListProps, JobListState> {
@@ -65,6 +66,7 @@ class JobList extends Component<JobListProps, JobListState> {
     }
 
     public componentDidMount = (): void => {
+        this.loadSchedule();
         this.client.activate();
     }
 
@@ -122,6 +124,38 @@ class JobList extends Component<JobListProps, JobListState> {
                     throw response.statusText;
                 }
             });
+    }
+
+    private fetchSchedule = (): Promise<Schedule> => {
+        const url: string = '/api/gitPollingLogs/schedule';
+        return fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((response: Response) => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    throw response.statusText;
+                } else {
+                    throw response.statusText;
+                }
+            })
+            .catch(error => console.log("App.fetchSchedule", error));
+    }
+
+    private loadSchedule = (): void => {
+        this.fetchSchedule()
+            .then((schedule: Schedule) => {
+                if (schedule) {
+                    this.setState({
+                        schedule: schedule.schedule
+                    });
+                }
+            })
     }
 
     private readonly handleOnClickJobButton = (jobId: number): void => {
@@ -267,7 +301,7 @@ class JobList extends Component<JobListProps, JobListState> {
                                 </div>
                             </div>
                         </div>
-                        <div className="github-status pt-3">
+                        <div className="github-status pt-3" hidden={!this.state.schedule}>
                             <button type="button" className={"btn btn-info btn-sm"} onClick={this.handleOnClickGitPollingLogButton}>Git Polling Log</button>
                             <GitPollingLogDialog gitPollingLog={this.state.gitPollingLog} />
                         </div>
