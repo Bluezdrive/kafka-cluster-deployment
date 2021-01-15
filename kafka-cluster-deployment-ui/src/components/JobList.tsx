@@ -40,7 +40,7 @@ class JobList extends Component<JobListProps, JobListState> {
     constructor(props: JobListProps) {
         super(props);
 
-        const url: string = "/ws";
+        const url: string = window.location.protocol + "//" + window.location.host + "/ws";
         this.state = this.initState();
         this.client = new Client({
             webSocketFactory: () => new SockJS(url),

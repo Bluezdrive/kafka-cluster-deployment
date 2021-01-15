@@ -41,6 +41,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-server</artifactId>
+            <version>9.4.35.v20201120</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
             <version>5.10.0.202012080955-r</version>
@@ -190,42 +196,6 @@
                 <artifactId>jasypt-maven-plugin</artifactId>
                 <version>3.0.3</version>
             </plugin>
-            <!--plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>npm_install</id>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <phase>compile</phase>
-                        <configuration>
-                            <executable>npm</executable>
-                            <workingDirectory>../kafka-cluster-deployment-ui</workingDirectory>
-                            <arguments>
-                                <argument>install</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm_run_build</id>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <phase>compile</phase>
-                        <configuration>
-                            <executable>npm</executable>
-                            <workingDirectory>../kafka-cluster-deployment-ui</workingDirectory>
-                            <arguments>
-                                <argument>run</argument>
-                                <argument>build</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -254,7 +224,7 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.11.0</version>
                 <configuration>
-                    <nodeVersion>v15.5.0</nodeVersion>
+                    <nodeVersion>v15.6.0</nodeVersion>
                     <workingDirectory>../kafka-cluster-deployment-ui</workingDirectory>
                 </configuration>
                 <executions>

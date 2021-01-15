@@ -27,6 +27,6 @@ RUN ssh-keyscan github.com >> ~/.ssh/known_hosts
 # Add configuration file
 #COPY docker/application.yml /home/workspace/config/application.yml
 
-WORKDIR /home/workspace/repository
+WORKDIR /home/workspace
 
 ENTRYPOINT ["java", "-jar", "/home/workspace/kafka-cluster-deployment-service.jar"]

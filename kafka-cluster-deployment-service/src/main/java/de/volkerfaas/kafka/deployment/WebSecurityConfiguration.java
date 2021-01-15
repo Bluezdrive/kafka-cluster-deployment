@@ -38,12 +38,16 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                         .defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), new AntPathRequestMatcher("/api/**")))
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
+                                new AntPathRequestMatcher("/ws"),
+                                new AntPathRequestMatcher("/ws/**"),
                                 new RegexRequestMatcher("/api/jobs", HttpMethod.POST.name()),
                                 new RegexRequestMatcher("/api/jobs/[0-9]+", HttpMethod.PUT.name()),
                                 new RegexRequestMatcher("/logout", HttpMethod.POST.name())
 
                         )
                 )
+                .headers().frameOptions().sameOrigin()
+                .and()
                 .oauth2Login(oauth2Login -> oauth2Login
                         .loginPage("/login.html")
                         .defaultSuccessUrl("/index.html", true)
