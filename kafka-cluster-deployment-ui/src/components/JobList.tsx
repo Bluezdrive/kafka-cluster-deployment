@@ -40,7 +40,7 @@ class JobList extends Component<JobListProps, JobListState> {
     constructor(props: JobListProps) {
         super(props);
 
-        const url: string = "http://192.168.2.118:8080/ws";
+        const url: string = "/ws";
         this.state = this.initState();
         this.client = new Client({
             webSocketFactory: () => new SockJS(url),

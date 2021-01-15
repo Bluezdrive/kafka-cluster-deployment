@@ -4,6 +4,7 @@ jdk: openjdk15
 branches:
   only:
     - master
+    - /^feature/.*$/
 cache:
   directories:
     - $home/.m2/repository
