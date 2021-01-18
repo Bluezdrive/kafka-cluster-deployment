@@ -43,6 +43,10 @@ class JobList extends Component<JobListProps, JobListState> {
         const url: string = window.location.protocol + "//" + window.location.host + "/ws";
         this.state = this.initState();
         this.client = new Client({
+            // TODO: Retrieve Authorization Header from somewhere else
+            // connectHeaders: {
+            //     Authorization: 'Basic ' + btoa( "fid:fiddle")
+            // },
             webSocketFactory: () => new SockJS(url),
             onConnect: this.handleOnConnect,
             onWebSocketError: (event: ErrorEvent) => {

@@ -8,7 +8,6 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -35,19 +34,22 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), new AntPathRequestMatcher("/api/**")))
+                        .defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), new AntPathRequestMatcher("/api/**"))
+                )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
                                 new AntPathRequestMatcher("/ws"),
                                 new AntPathRequestMatcher("/ws/**"),
-                                new RegexRequestMatcher("/api/jobs", HttpMethod.POST.name()),
-                                new RegexRequestMatcher("/api/jobs/[0-9]+", HttpMethod.PUT.name()),
-                                new RegexRequestMatcher("/logout", HttpMethod.POST.name())
+                                new AntPathRequestMatcher("/api/jobs", HttpMethod.POST.name()),
+                                new AntPathRequestMatcher("/api/jobs/[0-9]+", HttpMethod.PUT.name()),
+                                new AntPathRequestMatcher("/logout", HttpMethod.POST.name())
 
                         )
                 )
-                .headers().frameOptions().sameOrigin()
-                .and()
+                .headers(headers -> headers
+                        .frameOptions()
+                        .sameOrigin()
+                )
                 .oauth2Login(oauth2Login -> oauth2Login
                         .loginPage("/login.html")
                         .defaultSuccessUrl("/index.html", true)
