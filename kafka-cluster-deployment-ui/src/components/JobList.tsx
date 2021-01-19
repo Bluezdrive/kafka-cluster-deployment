@@ -45,9 +45,12 @@ class JobList extends Component<JobListProps, JobListState> {
         this.client = new Client({
             // TODO: Retrieve Authorization Header from somewhere else
             // connectHeaders: {
-            //     Authorization: 'Basic ' + btoa( "fid:fiddle")
+            //     Authorization: 'Basic ' + btoa( "<username>:<password>")
             // },
-            webSocketFactory: () => new SockJS(url),
+            // TODO: Enable secure websocket connections
+            webSocketFactory: () => new SockJS(url, null, {
+                transports: ["xhr-streaming", "xhr-polling"]
+            }),
             onConnect: this.handleOnConnect,
             onWebSocketError: (event: ErrorEvent) => {
                 this.setState({
