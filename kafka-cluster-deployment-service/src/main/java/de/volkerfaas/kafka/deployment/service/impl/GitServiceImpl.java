@@ -40,14 +40,30 @@ public class GitServiceImpl implements GitService {
         if (Objects.isNull(git)) {
             final String repository = config.getGit().getRepository();
             final String uri = "git@github.com:" + repository + ".git";
-            task.setCommand("git clone " + uri + " .");
+            task.addLog("git clone " + uri + " .");
             task.addLog("Clone repository " + uri + " into " + directory + "...");
             git = gitRepository.cloneRepository(uri, branch, directory, new TaskProgressMonitor(task));
         } else {
-            task.setCommand("git pull");
+            task.addLog("git pull");
             task.addLog("Pull repository " + directory + "...");
             gitRepository.pullRepository(git, new TaskProgressMonitor(task));
         }
+        return git;
+    }
+
+    @Override
+    public Git commitAndPushRepository(Task task, File directory, String branch) throws IOException, GitAPIException {
+        final Git git = gitRepository.openRepository(branch, directory).orElse(null);
+        if (Objects.isNull(git)) {
+            throw new IOException("No repository available.");
+        }
+        gitRepository.addFile(git, "topology");
+        final String message = "Updated topology documentation.";
+        task.addLog("git commit -m " + message + " && git push");
+        final String log = gitRepository.commitRepository(git, message);
+        task.addLog(log);
+        gitRepository.pushRepository(git, new TaskProgressMonitor(task));
+
         return git;
     }
 

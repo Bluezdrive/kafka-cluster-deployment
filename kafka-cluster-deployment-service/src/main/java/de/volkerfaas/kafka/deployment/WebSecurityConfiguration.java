@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +42,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                                 new AntPathRequestMatcher("/ws"),
                                 new AntPathRequestMatcher("/ws/**"),
                                 new AntPathRequestMatcher("/api/jobs", HttpMethod.POST.name()),
-                                new AntPathRequestMatcher("/api/jobs/[0-9]+", HttpMethod.PUT.name()),
+                                new RegexRequestMatcher("/api/jobs/[0-9]+", HttpMethod.PUT.name()),
                                 new AntPathRequestMatcher("/logout", HttpMethod.POST.name())
 
                         )

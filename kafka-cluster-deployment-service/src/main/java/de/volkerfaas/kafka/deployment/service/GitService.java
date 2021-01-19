@@ -10,9 +10,10 @@ import java.io.File;
 import java.io.IOException;
 
 public interface GitService {
+
     Git cloneOrPullRepository(Task task, File directory, String branch) throws IOException, GitAPIException;
-
+    Git commitAndPushRepository(Task task, File directory, String branch) throws IOException, GitAPIException;
     GitPollingLog findLatest() throws NotFoundException;
-
     boolean isRepositoryChanged(String repository, String branch, Job job);
+
 }

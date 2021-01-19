@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -58,8 +58,37 @@ public class GitRepositoryImpl implements GitRepository {
     }
 
     @Override
+    public void addFile(Git git, String file) throws GitAPIException {
+        git.add()
+                .addFilepattern(file)
+                .call();
+    }
+
+    @Override
+    public String commitRepository(Git git, String message) throws GitAPIException, UnsupportedEncodingException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (final PrintStream hookStdOut = new PrintStream(outputStream, true, StandardCharsets.UTF_8.name())) {
+            git.commit()
+                    .setMessage(message)
+                    .setHookOutputStream(hookStdOut)
+                    .setHookErrorStream(hookStdOut)
+                    .call();
+        }
+
+        return outputStream.toString(StandardCharsets.UTF_8.name());
+    }
+
+    @Override
     public void pullRepository(Git git, ProgressMonitor progressMonitor) throws GitAPIException {
         git.pull()
+                .setProgressMonitor(progressMonitor)
+                .setTransportConfigCallback(transportConfigCallback)
+                .call();
+    }
+
+    @Override
+    public void pushRepository(Git git, ProgressMonitor progressMonitor) throws GitAPIException {
+        git.push()
                 .setProgressMonitor(progressMonitor)
                 .setTransportConfigCallback(transportConfigCallback)
                 .call();

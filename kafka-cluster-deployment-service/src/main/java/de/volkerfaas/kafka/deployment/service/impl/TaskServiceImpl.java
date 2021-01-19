@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 public class TaskServiceImpl implements TaskService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskServiceImpl.class);
+    private static final String GIT_COMMAND_CLONE_OR_PULL = "cloneOrPull";
+    private static final String GIT_COMMAND_COMMIT_AND_PUSH = "commitAndPush";
 
     private final Config config;
     private final GitService gitService;
@@ -49,7 +51,11 @@ public class TaskServiceImpl implements TaskService {
         try {
             final File directory = new File(config.getWorkingDirectory());
             final String branch = config.getGit().getBranch();
-            final Git git = gitService.cloneOrPullRepository(task, directory, branch);
+            final Git git = switch(task.getCommand()) {
+                case GIT_COMMAND_CLONE_OR_PULL -> gitService.cloneOrPullRepository(task, directory, branch);
+                case GIT_COMMAND_COMMIT_AND_PUSH -> gitService.commitAndPushRepository(task, directory, branch);
+                default -> throw new IllegalStateException("Unexpected command: " + task.getCommand());
+            };
             final Job job = task.getJob();
             updateJobEvent(branch, git, job);
             git.close();
