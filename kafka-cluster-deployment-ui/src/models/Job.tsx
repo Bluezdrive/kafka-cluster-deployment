@@ -8,6 +8,7 @@ export type Task = Base & {
     command: string;
     exitCode: number;
     log: string;
+    type: string;
 }
 
 export type Event = {
