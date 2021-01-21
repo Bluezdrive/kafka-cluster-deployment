@@ -5,6 +5,8 @@ import de.volkerfaas.kafka.deployment.config.TaskConfig;
 import de.volkerfaas.kafka.deployment.model.*;
 import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
+import de.volkerfaas.utils.MultiTaggedCounter;
+import io.micrometer.core.instrument.Metrics;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -30,9 +32,12 @@ public class TaskServiceImpl implements TaskService {
     private final Config config;
     private final GitService gitService;
 
+    private final MultiTaggedCounter counterTask;
+
     public TaskServiceImpl(Config config, GitService gitService) {
         this.config = config;
         this.gitService = gitService;
+        this.counterTask = new MultiTaggedCounter("kcds.task", Metrics.globalRegistry, "type", "command", "status");
     }
 
     @Override
@@ -60,11 +65,15 @@ public class TaskServiceImpl implements TaskService {
             updateJobEvent(branch, git, job);
             git.close();
             task.setStatus(Status.SUCCESS);
+            this.counterTask.increment("GIT", task.getCommand(), Status.SUCCESS.name());
+
             return 0;
         } catch (GitAPIException | IOException e) {
             LOGGER.error(e.getMessage());
             task.addLog(e.getMessage());
             task.setStatus(Status.FAILED);
+            this.counterTask.increment("GIT", task.getCommand(), Status.FAILED.name());
+
             return 1;
         }
     }
@@ -83,6 +92,11 @@ public class TaskServiceImpl implements TaskService {
         task.setEndTimeMillis(System.currentTimeMillis());
         task.setExitCode(exitCode);
         process.destroy();
+
+        switch (task.getStatus()) {
+            case SUCCESS -> this.counterTask.increment("COMMAND_LINE", task.getCommand(), Status.SUCCESS.name());
+            case FAILED -> this.counterTask.increment("COMMAND_LINE", task.getCommand(), Status.FAILED.name());
+        }
 
         return exitCode;
     }

@@ -11,6 +11,9 @@ import de.volkerfaas.kafka.deployment.model.Job;
 import de.volkerfaas.kafka.deployment.model.Status;
 import de.volkerfaas.kafka.deployment.model.Task;
 import de.volkerfaas.kafka.deployment.service.*;
+import de.volkerfaas.utils.MultiTaggedCounter;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.commons.codec.binary.Hex;
@@ -51,6 +54,10 @@ public class JobServiceImpl implements JobService, Runnable {
     private final JobProducer jobProducer;
     private final BlockingQueue<Long> queue;
 
+    private final Counter counterRepositoryChanged;
+    private final Counter counterRepositoryPolled;
+    private final MultiTaggedCounter counterJob;
+
     @Autowired
     public JobServiceImpl(Config config, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
         this.config = config;
@@ -59,12 +66,20 @@ public class JobServiceImpl implements JobService, Runnable {
         this.jobRepository = jobRepository;
         this.jobProducer = jobProducer;
         this.queue = new LinkedBlockingQueue<>();
-        Gauge.builder("job.queue.size", this.queue, Collection::size)
+
+        Gauge.builder("kcds.job.queue.size", this.queue, Collection::size)
                 .description("The number of jobs waiting to be executed")
                 .register(Metrics.globalRegistry);
-        Gauge.builder("jobs.total", this.jobRepository::count)
+        Gauge.builder("kcds.jobs.total", this.jobRepository::count)
                 .description("The number of jobs that haven been executed")
                 .register(Metrics.globalRegistry);
+        this.counterRepositoryChanged = Counter.builder("kcds.repository.changed")
+                .description("The number of changes made to the repository")
+                .register(Metrics.globalRegistry);
+        this.counterRepositoryPolled = Counter.builder("kcds.repository.polled")
+                .description("The number of times the repository has been polled")
+                .register(Metrics.globalRegistry);
+        this.counterJob = new MultiTaggedCounter("kcds.job", Metrics.globalRegistry, "status");
     }
 
     @PostConstruct
@@ -124,12 +139,15 @@ public class JobServiceImpl implements JobService, Runnable {
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
         if (gitService.isRepositoryChanged(repository, branch, job)) {
+            counterRepositoryChanged.increment();
+
             Event event = new Event();
             event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
             final long jobId = createJob(event, repository, branch);
             queue.put(jobId);
             LOGGER.info("Put job into queue with id {}", jobId);
         }
+        this.counterRepositoryPolled.increment();
     }
 
     @Override
@@ -180,6 +198,7 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     @Transactional
+    @Timed(value = "kcds.task.duration", description = "Time spent executing tasks")
     public void executeTasks(Job job) {
         for (Task task : job.getTasks()) {
             task.setStatus(Status.RUNNING);
@@ -235,6 +254,7 @@ public class JobServiceImpl implements JobService, Runnable {
                 .reduce(true, (previousTaskStatus, currentTaskStatus) -> previousTaskStatus && currentTaskStatus);
         job.setStatus(allTasksSuccessful ? Status.SUCCESS : Status.FAILED);
         job.setEndTimeMillis(System.currentTimeMillis());
+        counterJob.increment(job.getStatus().name());
         LOGGER.info("Finished job {}", job.getId());
         save(job);
     }

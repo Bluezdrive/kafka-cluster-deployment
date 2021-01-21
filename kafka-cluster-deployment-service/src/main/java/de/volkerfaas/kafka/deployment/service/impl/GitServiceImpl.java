@@ -59,7 +59,7 @@ public class GitServiceImpl implements GitService {
         }
         gitRepository.addFile(git, "topology");
         final String message = "Updated topology documentation.";
-        task.addLog("git commit -m " + message + " && git push");
+        task.addLog("git commit -m \"" + message + "\" && git push");
         final String log = gitRepository.commitRepository(git, message);
         task.addLog(log);
         gitRepository.pushRepository(git, new TaskProgressMonitor(task));
