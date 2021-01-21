@@ -59,7 +59,7 @@ public class TaskServiceImpl implements TaskService {
             final Git git = switch(task.getCommand()) {
                 case GIT_COMMAND_CLONE_OR_PULL -> gitService.cloneOrPullRepository(task, directory, branch);
                 case GIT_COMMAND_COMMIT_AND_PUSH -> gitService.commitAndPushRepository(task, directory, branch);
-                default -> throw new IllegalStateException("Unexpected command: " + task.getCommand());
+                default -> throw new IllegalStateException("Unexpected git command: " + task.getCommand());
             };
             final Job job = task.getJob();
             updateJobEvent(branch, git, job);

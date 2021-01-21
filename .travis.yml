@@ -18,8 +18,6 @@ deploy:
   - provider: script
     skip_cleanup: true
     script: mvn dockerfile:build dockerfile:push
-    on:
-      branch: master
 #sudo: required
 #branches:
 #  only:
