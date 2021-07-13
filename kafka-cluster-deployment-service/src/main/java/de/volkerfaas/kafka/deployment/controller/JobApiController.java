@@ -59,6 +59,22 @@ public class JobApiController {
         return new JobResponse(jobId);
     }
 
+    @Operation(summary = "Restart a job")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Restarted the job", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = JobResponse.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+            })
+    })
+    @PutMapping(path = "/api/jobs/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public JobResponse restart(@PathVariable long id) throws BadEventException, InterruptedException {
+        final long jobId = jobService.restartJob(id);
+
+        return new JobResponse(jobId);
+    }
+
     @Operation(summary = "Get all jobs")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Found jobs", content = {

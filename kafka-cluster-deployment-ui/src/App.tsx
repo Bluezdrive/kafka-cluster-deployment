@@ -19,7 +19,7 @@ class App extends Component<any, AppState> {
         super(props);
 
         this.state = {
-            token: this.defaultPrincipal()
+            token: this.defaultPrincipal(),
         }
     }
 
@@ -34,8 +34,8 @@ class App extends Component<any, AppState> {
     }
 
     public componentDidMount = (): void => {
-        this.loadPrincipal();
-        this.intervalId = setInterval(this.loadPrincipal, 30000);
+        this.loadToken();
+        this.intervalId = setInterval(this.loadToken, 30000);
     }
 
     public componentWillUnmount = (): void => {
@@ -44,28 +44,7 @@ class App extends Component<any, AppState> {
         }
     }
 
-    private loadPrincipal = (): void => {
-        this.fetch()
-            .then((token: OAuth2Token) => {
-                this.setState({
-                    token: token
-                })
-            });
-    }
-
-    private handleUnauthorized = (): void => {
-        this.setState({
-            token: this.defaultPrincipal()
-        })
-        if (this.intervalId && window.location.pathname === "/login.html") {
-            clearInterval(this.intervalId);
-        }
-        if (window.location.pathname !== "/login.html") {
-            window.location.replace("/login.html")
-        }
-    }
-
-    private fetch = (): Promise<OAuth2Token> => {
+    private fetchToken = (): Promise<OAuth2Token> => {
         const url: string = '/api/oauth2/token';
         return fetch(url, {
             method: 'GET',
@@ -84,7 +63,28 @@ class App extends Component<any, AppState> {
                     throw response.statusText;
                 }
             })
-            .catch(error => console.log("App.fetch", error));
+            .catch(error => console.log("App.fetchToken", error));
+    }
+
+    private loadToken = (): void => {
+        this.fetchToken()
+            .then((token: OAuth2Token) => {
+                this.setState({
+                    token: token
+                });
+            });
+    }
+
+    private handleUnauthorized = (): void => {
+        this.setState({
+            token: this.defaultPrincipal()
+        })
+        if (this.intervalId && window.location.pathname === "/login.html") {
+            clearInterval(this.intervalId);
+        }
+        if (window.location.pathname !== "/login.html") {
+            window.location.replace("/login.html")
+        }
     }
 
     public render = (): ReactNode => {

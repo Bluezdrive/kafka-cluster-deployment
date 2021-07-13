@@ -4,6 +4,7 @@ jdk: openjdk15
 branches:
   only:
     - master
+    - /^feature/.*$/
 cache:
   directories:
     - $home/.m2/repository
@@ -19,35 +20,3 @@ deploy:
     script: mvn dockerfile:build dockerfile:push
     on:
       branch: master
-#sudo: required
-#branches:
-#  only:
-#    - master
-#matrix:
-#  include:
-#    - language: node_js
-#      node_js:
-#        - 15
-#      cache:
-#        directories:
-#          - node_modules
-#      script:
-#        - npm --prefix kafka-cluster-deployment-ui install
-#        - npm --prefix kafka-cluster-deployment-ui run build
-#    - language: java
-#      jdk: openjdk15
-#      cache:
-#        directories:
-#          - $home/.m2/repository
-#      script: mvn clean package
-#      after_success:
-#        - mvn test jacoco:report
-#        - bash <(curl -Ls https://coverage.codacy.com/get.sh) report
-#      before_deploy:
-#        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-#      deploy:
-#        - provider: script
-#          skip_cleanup: true
-#          script: mvn dockerfile:build dockerfile:push
-#          on:
-#            branch: master

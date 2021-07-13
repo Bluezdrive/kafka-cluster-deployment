@@ -1,9 +1,9 @@
 .list-scroll {
-    max-height: calc(100vh - 76px - 48px - (1rem * 4));
+    max-height: calc(100vh - 76px - 48px - (1rem * 4) - 33px - 14px);
     overflow-y: scroll;
     border: 1px solid rgba(0, 0, 0, 0.125);
     border-radius: .25rem;
-    bottom: 0px;
+    bottom: 0;
 }
 
 .list-scroll .card {
@@ -12,6 +12,14 @@
 
 .list-group-item:first-child {
     border-top: none!important;
+}
+
+.github-status {
+    text-align: center;
+}
+
+.github-status pre {
+    text-align: left;
 }
 
 .list-group-item {
@@ -43,7 +51,7 @@
 
 .icon-failed,
 .failed div {
-    color: red;
+    color: #db4545;
 }
 
 .list-group {
@@ -55,8 +63,8 @@
 .list-group-item.active-failed:hover {
     z-index: 2;
     color: white;
-    background-color: red;
-    border-color: red;
+    background-color: #db4545;
+    border-color: #db4545;
 }
 
 .icon-created,

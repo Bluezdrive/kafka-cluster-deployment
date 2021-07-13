@@ -12,6 +12,8 @@ public interface JobService {
 
     long queueNewJob(PushEvent event) throws BadEventException, InterruptedException ;
 
+    long restartJob(long jobId) throws BadEventException, InterruptedException;
+
     Job findJobById(long id) throws NotFoundException;
 
     Page<Job> listJobs(SkipablePageRequest pageable);

@@ -17,10 +17,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, auditevents, prometheus
-      #base-path: /
-      #path-mapping:
-      #  prometheus: /metrics
+        include: health, info, auditevents, prometheus, logfile, metrics
 spring:
   jpa:
     hibernate:
@@ -33,6 +30,13 @@ spring:
     properties:
       "[hibernate.generate_statistics]": true
 logging:
+  file:
+    name: logs/kcds.log
   level:
     root: info
     org.hibernate: warn
+info:
+  app:
+    name: Apache Kafka Cluster Deployment
+    description: A deployment server for Apache Kafka Cluster and Schema Registry
+

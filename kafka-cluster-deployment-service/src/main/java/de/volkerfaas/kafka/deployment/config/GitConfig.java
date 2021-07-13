@@ -6,6 +6,7 @@ public class GitConfig {
     private String secret;
     private String repository;
     private String privateKey;
+    private String cron;
 
     public String getBranch() {
         return branch;
@@ -39,4 +40,11 @@ public class GitConfig {
         this.privateKey = privateKey;
     }
 
+    public String getCron() {
+        return cron;
+    }
+
+    public void setCron(String cron) {
+        this.cron = cron;
+    }
 }

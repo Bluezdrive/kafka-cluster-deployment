@@ -22,3 +22,26 @@
     height: 13px;
     width: 13px;
 }
+
+.btn-outline-failed {
+    color: #db4545!important;
+    border-color: #db4545!important;
+    background-color: white!important;
+}
+
+.btn-outline-failed:hover {
+    color: white!important;
+    background-color: #db4545!important;
+}
+
+.list-group-item.active-failed .btn-outline-failed {
+    color: white!important;
+    border-color: white!important;
+    background-color: #db4545!important;
+}
+
+.list-group-item.active-failed .btn-outline-failed:hover {
+    color: #db4545!important;
+    border-color: white!important;
+    background-color: white!important;
+}

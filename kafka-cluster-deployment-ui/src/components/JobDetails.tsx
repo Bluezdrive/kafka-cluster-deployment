@@ -15,7 +15,7 @@ class JobDetails extends Component<JobDetailsProp, any> {
             const job: Job = this.props.job;
             return(
                 <div className="card">
-                    <div className="card-header"><JobItem job={job} details={true} /></div>
+                    <div className="card-header"><JobItem job={job} hideButtonRestart={true} details={true} /></div>
                     <div className="card-body card-body-nested">
                         <div className="accordion" id="tasks">
                             {job.tasks.map(task => <TaskItem key={"task-" + task.id} task={task}/>)}

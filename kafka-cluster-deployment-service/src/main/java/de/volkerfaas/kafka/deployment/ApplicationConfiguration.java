@@ -1,6 +1,9 @@
 package de.volkerfaas.kafka.deployment;
 
 import de.volkerfaas.kafka.deployment.integration.impl.BaseRepositoryImpl;
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import org.jasypt.encryption.StringEncryptor;
 import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
 import org.jasypt.encryption.pbe.config.SimpleStringPBEConfig;
@@ -26,6 +29,11 @@ public class ApplicationConfiguration {
     @Bean
     public InMemoryAuditEventRepository repository(){
         return new InMemoryAuditEventRepository();
+    }
+
+    @Bean
+    public TimedAspect timedAspect() {
+        return new TimedAspect(Metrics.globalRegistry);
     }
 
     @Bean

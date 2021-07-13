@@ -1,6 +1,9 @@
 package de.volkerfaas.kafka.deployment.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
 
@@ -85,7 +88,7 @@ public class Task extends Base {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="job_id", nullable = false)
-    @JsonIgnore
+    @JsonBackReference(value = "tasks")
     public Job getJob() {
         return job;
     }
@@ -109,6 +112,10 @@ public class Task extends Base {
 
     public void setLog(String log) {
         this.log = log;
+    }
+
+    public void addLog(String log) {
+        setLog(this.log.concat(log).concat(System.lineSeparator()));
     }
 
     @Override

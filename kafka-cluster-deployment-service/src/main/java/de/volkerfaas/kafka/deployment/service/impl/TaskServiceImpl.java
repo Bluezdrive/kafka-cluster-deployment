@@ -2,10 +2,11 @@ package de.volkerfaas.kafka.deployment.service.impl;
 
 import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.TaskConfig;
-import de.volkerfaas.kafka.deployment.integration.GitRepository;
-import de.volkerfaas.kafka.deployment.integration.impl.TaskProgressMonitor;
 import de.volkerfaas.kafka.deployment.model.*;
+import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
+import de.volkerfaas.utils.MultiTaggedCounter;
+import io.micrometer.core.instrument.Metrics;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -19,20 +20,24 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 public class TaskServiceImpl implements TaskService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskServiceImpl.class);
+    private static final String GIT_COMMAND_CLONE_OR_PULL = "cloneOrPull";
+    private static final String GIT_COMMAND_COMMIT_AND_PUSH = "commitAndPush";
 
     private final Config config;
-    private final GitRepository gitRepository;
+    private final GitService gitService;
 
-    public TaskServiceImpl(Config config, GitRepository gitRepository) {
+    private final MultiTaggedCounter counterTask;
+
+    public TaskServiceImpl(Config config, GitService gitService) {
         this.config = config;
-        this.gitRepository = gitRepository;
+        this.gitService = gitService;
+        this.counterTask = new MultiTaggedCounter("kcds.task", Metrics.globalRegistry, "type", "command", "status");
     }
 
     @Override
@@ -51,36 +56,28 @@ public class TaskServiceImpl implements TaskService {
         try {
             final File directory = new File(config.getWorkingDirectory());
             final String branch = config.getGit().getBranch();
-            Git git = gitRepository.openRepository(branch, directory).orElse(null);
-            if (Objects.isNull(git)) {
-                final String repository = config.getGit().getRepository();
-                final String uri = "git@github.com:" + repository + ".git";
-                final String command = "git clone " + uri + " .";
-                task.setCommand(command);
-                git = gitRepository.cloneRepository(uri, branch, directory, new TaskProgressMonitor(task));
-            } else {
-                final String command = "git pull";
-                task.setCommand(command);
-                gitRepository.pullRepository(git, new TaskProgressMonitor(task));
-            }
-            final RevCommit latestCommit = git.log().setMaxCount(1).call().iterator().next();
+            final Git git = switch(task.getCommand()) {
+                case GIT_COMMAND_CLONE_OR_PULL -> gitService.cloneOrPullRepository(task, directory, branch);
+                case GIT_COMMAND_COMMIT_AND_PUSH -> gitService.commitAndPushRepository(task, directory, branch);
+                default -> throw new IllegalStateException("Unexpected git command: " + task.getCommand());
+            };
             final Job job = task.getJob();
-            final Event event = job.getEvent();
-            event.setRef("refs/heads/" + branch);
-            event.setHeadCommitMessage(latestCommit.getShortMessage());
-            event.setHeadCommitId(latestCommit.getId().name());
-            event.setPusherName(latestCommit.getCommitterIdent().getName());
-            event.setPusherEmail(latestCommit.getCommitterIdent().getEmailAddress());
-            event.setHeadCommitTimestamp(new Date(latestCommit.getCommitTime()));
+            updateJobEvent(branch, git, job);
             git.close();
             task.setStatus(Status.SUCCESS);
+            this.counterTask.increment("GIT", task.getCommand(), Status.SUCCESS.name());
+
             return 0;
         } catch (GitAPIException | IOException e) {
             LOGGER.error(e.getMessage());
+            task.addLog(e.getMessage());
             task.setStatus(Status.FAILED);
+            this.counterTask.increment("GIT", task.getCommand(), Status.FAILED.name());
+
             return 1;
         }
     }
+
 
     @Override
     public int executeCommandLineTask(Task task) throws IOException, InterruptedException {
@@ -90,11 +87,16 @@ public class TaskServiceImpl implements TaskService {
                 .peek(LOGGER::info)
                 .collect(Collectors.joining(System.lineSeparator()));
         final int exitCode = process.waitFor();
-        task.setLog(log);
+        task.addLog(log);
         task.setStatus(exitCode == 0 ? Status.SUCCESS : Status.FAILED);
         task.setEndTimeMillis(System.currentTimeMillis());
         task.setExitCode(exitCode);
         process.destroy();
+
+        switch (task.getStatus()) {
+            case SUCCESS -> this.counterTask.increment("COMMAND_LINE", task.getCommand(), Status.SUCCESS.name());
+            case FAILED -> this.counterTask.increment("COMMAND_LINE", task.getCommand(), Status.FAILED.name());
+        }
 
         return exitCode;
     }
@@ -113,6 +115,17 @@ public class TaskServiceImpl implements TaskService {
         LOGGER.debug(command);
 
         return builder.start();
+    }
+
+    private void updateJobEvent(String branch, Git git, Job job) throws GitAPIException {
+        final RevCommit latestCommit = git.log().setMaxCount(1).call().iterator().next();
+        final Event event = job.getEvent();
+        event.setRef("refs/heads/" + branch);
+        event.setHeadCommitMessage(latestCommit.getShortMessage());
+        event.setHeadCommitId(latestCommit.getId().name());
+        event.setPusherName(latestCommit.getCommitterIdent().getName());
+        event.setPusherEmail(latestCommit.getCommitterIdent().getEmailAddress());
+        event.setHeadCommitTimestamp(new Date(latestCommit.getCommitTime()));
     }
 
 }
