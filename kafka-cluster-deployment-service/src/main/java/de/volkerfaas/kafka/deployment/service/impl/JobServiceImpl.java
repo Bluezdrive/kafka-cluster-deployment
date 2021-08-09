@@ -21,14 +21,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,6 +53,7 @@ public class JobServiceImpl implements JobService, Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobServiceImpl.class);
 
     private final Config config;
+    private final JavaMailSender javaMailSender;
     private final TaskService taskService;
     private final GitService gitService;
     private final JobRepository jobRepository;
@@ -59,8 +65,9 @@ public class JobServiceImpl implements JobService, Runnable {
     private final MultiTaggedCounter counterJob;
 
     @Autowired
-    public JobServiceImpl(Config config, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
+    public JobServiceImpl(Config config, JavaMailSender sender, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
         this.config = config;
+        this.javaMailSender = sender;
         this.gitService = gitService;
         this.taskService = taskService;
         this.jobRepository = jobRepository;
@@ -173,12 +180,16 @@ public class JobServiceImpl implements JobService, Runnable {
                 final long id = Long.parseLong(e.getId().toString());
                 try {
                     finishJob(id);
-                } catch (NotFoundException ignored) {
+                } catch (NotFoundException | MessagingException | UnsupportedEncodingException ignored) {
                 }
             } catch (InterruptedException e) {
                 LOGGER.error("Interrupting with error", e);
                 Thread.currentThread().interrupt();
                 break;
+            } catch (MessagingException e) {
+                LOGGER.error("Error sending mail", e);
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.error("Error sending mail", e);
             }
         } while (true);
     }
@@ -241,13 +252,13 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     @Transactional
-    public void finishJob(long jobId) throws NotFoundException {
+    public void finishJob(long jobId) throws NotFoundException, MessagingException, UnsupportedEncodingException {
         final Job job = jobRepository.findById(jobId).orElseThrow(() -> new NotFoundException(Job.class, jobId));
         finishJob(job);
     }
 
     @Transactional
-    public void finishJob(Job job) {
+    public void finishJob(Job job) throws MessagingException, UnsupportedEncodingException {
         final boolean allTasksSuccessful = job.getTasks().stream()
                 .map(Task::getStatus)
                 .map(status -> status == Status.SUCCESS)
@@ -256,7 +267,7 @@ public class JobServiceImpl implements JobService, Runnable {
         job.setEndTimeMillis(System.currentTimeMillis());
         counterJob.increment(job.getStatus().name());
         LOGGER.info("Finished job {}", job.getId());
-        save(job);
+        sendMail(save(job));
     }
 
     @Transactional
@@ -273,6 +284,17 @@ public class JobServiceImpl implements JobService, Runnable {
         return jobProducer.send(jobRepository.saveAndFlush(job));
     }
 
+    private void sendMail(Job job) throws MessagingException, UnsupportedEncodingException {
+        final MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        final MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+        final String text = "Kafka cluster deployment job #" + job.getId() + " finished " + (job.getStatus() == Status.SUCCESS ? "successfully" : "with errors");
+        helper.setFrom(config.getMail().getFrom(), config.getMail().getPersonal());
+        helper.setTo(config.getMail().getTo());
+        helper.setSubject(text);
+        helper.setText("<p>" + text + "</p>", true);
+        javaMailSender.send(mimeMessage);
+    }
+
     private String getBranchFromRef(String ref) {
         if (Objects.isNull(ref)) {
             return null;
@@ -283,7 +305,5 @@ public class JobServiceImpl implements JobService, Runnable {
         }
         return items[2];
     }
-
-
 
 }

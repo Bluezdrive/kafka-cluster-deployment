@@ -10,6 +10,7 @@ import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -28,13 +29,14 @@ public class JobServiceImplTest {
         gitConfig.setSecret("v1xesaB.97bhj#76lHtio+9812bHGF");
         final Config config = new Config();
         config.setGit(gitConfig);
+        final JavaMailSender mailSender = mock(JavaMailSender.class);
         final GitRepository gitRepository = mock(GitRepository.class);
         final GitStatusRepository gitStatusRepository = mock(GitStatusRepository.class);
         final JobRepository jobRepository = mock(JobRepository.class);
         final JobProducer jobProducer = mock(JobProducer.class);
         final GitService gitService = new GitServiceImpl(config, gitRepository, gitStatusRepository);
         final TaskService taskService = new TaskServiceImpl(config, gitService);
-        this.jobService = new JobServiceImpl(config, taskService, gitService, jobRepository, jobProducer);
+        this.jobService = new JobServiceImpl(config, mailSender, taskService, gitService, jobRepository, jobProducer);
     }
 
     @Test
