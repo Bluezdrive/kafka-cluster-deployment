@@ -139,6 +139,22 @@ config:
   git:
     cron: 0 0/1 * * * *
 ```
+ 
+#### SSH Key for GitHub
+
+```
+ssh-keygen -t rsa -b 4096 -m PEM -C "<e-mail address>"
+```
+Save key to file id_kcds
+
+```YAML
+config:
+  git:
+    secret: <passphrase>
+    private-key: <content of file id_kcds>
+```
+
+Add public SSH key to your GitHub account.
 
 # Docker
 
