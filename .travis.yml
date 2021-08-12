@@ -8,12 +8,12 @@ branches:
 cache:
   directories:
     - $home/.m2/repository
-script: mvn clean package
+script: mvn clean package dockerfile:build
 before_deploy:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 deploy:
   - provider: script
     skip_cleanup: true
-    script: mvn dockerfile:build dockerfile:push
+    script: mvn dockerfile:push
     on:
       branch: master
