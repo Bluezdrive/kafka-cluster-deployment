@@ -1,8 +1,6 @@
 sudo: required
 language: java
 jdk: openjdk15
-services:
-  - docker
 branches:
   only:
     - master
