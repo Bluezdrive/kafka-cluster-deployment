@@ -25,6 +25,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
@@ -65,9 +66,9 @@ public class JobServiceImpl implements JobService, Runnable {
     private final MultiTaggedCounter counterJob;
 
     @Autowired
-    public JobServiceImpl(Config config, JavaMailSender sender, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
+    public JobServiceImpl(Config config, JavaMailSender javaMailSender, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
         this.config = config;
-        this.javaMailSender = sender;
+        this.javaMailSender = javaMailSender;
         this.gitService = gitService;
         this.taskService = taskService;
         this.jobRepository = jobRepository;
@@ -186,9 +187,7 @@ public class JobServiceImpl implements JobService, Runnable {
                 LOGGER.error("Interrupting with error", e);
                 Thread.currentThread().interrupt();
                 break;
-            } catch (MessagingException e) {
-                LOGGER.error("Error sending mail", e);
-            } catch (UnsupportedEncodingException e) {
+            } catch (MessagingException | UnsupportedEncodingException e) {
                 LOGGER.error("Error sending mail", e);
             }
         } while (true);
@@ -285,6 +284,15 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     private void sendMail(Job job) throws MessagingException, UnsupportedEncodingException {
+        if (
+                Objects.isNull(config.getMail()) ||
+                StringUtils.isEmpty(config.getMail().getFrom()) ||
+                StringUtils.isEmpty(config.getMail().getTo()) ||
+                StringUtils.isEmpty(config.getMail().getHost())
+            ) {
+            return;
+        }
+
         final MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         final MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
         final String text = "Kafka cluster deployment job #" + job.getId() + " finished " + (job.getStatus() == Status.SUCCESS ? "successfully" : "with errors");
@@ -293,6 +301,8 @@ public class JobServiceImpl implements JobService, Runnable {
         helper.setSubject(text);
         helper.setText("<p>" + text + "</p>", true);
         javaMailSender.send(mimeMessage);
+
+        LOGGER.info("Sent mail to {}", config.getMail().getTo());
     }
 
     private String getBranchFromRef(String ref) {
