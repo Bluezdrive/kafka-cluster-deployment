@@ -12,6 +12,8 @@ cache:
     - $home/.m2/repository
 script: mvn clean package
 before_install:
+  - sudo apt-get update -y
+  - sudo apt-get install -y gpgv
   - docker build -t bluezdrive/kafka-cluster-deployment-service:1.0 ./kafka-cluster-deployment-service/
 before_deploy:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
