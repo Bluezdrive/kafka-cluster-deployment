@@ -1,4 +1,4 @@
-FROM ubuntu:21.04
+FROM ubuntu:21.10
 ARG JAR_FILE
 
 # Install OpenJDK 15 & Git
