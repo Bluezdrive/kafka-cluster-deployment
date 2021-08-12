@@ -9,9 +9,9 @@ cache:
   directories:
     - $home/.m2/repository
 script: mvn clean package
-after_success:
-  - mvn test jacoco:report
-  - bash <(curl -Ls https://coverage.codacy.com/get.sh) report
+#after_success:
+#  - mvn test jacoco:report
+#  - bash <(curl -Ls https://coverage.codacy.com/get.sh) report
 before_deploy:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 deploy:
