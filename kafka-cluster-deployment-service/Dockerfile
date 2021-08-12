@@ -3,7 +3,7 @@ ARG JAR_FILE
 
 # Install OpenJDK 15 & Git
 RUN apt-get update && \
-    apt-get install -y openjdk-15-jre git wget && \
+    apt-get install -y openjdk-15-jre git-all wget && \
     apt-get clean
 
 # Create directories
