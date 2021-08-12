@@ -5,8 +5,8 @@ ARG JAR_FILE
 #RUN apt-get update -y && \
 #    apt-get install -y gpgv2 openjdk-15-jre git wget && \
 #    apt-get clean
-RUN apt-get update -y
 RUN apt-get install -y gpgv2
+RUN apt-get update -y
 RUN apt-get install -y git
 RUN apt-get install -y openjdk-15-jre
 RUN apt-get install -y wget
