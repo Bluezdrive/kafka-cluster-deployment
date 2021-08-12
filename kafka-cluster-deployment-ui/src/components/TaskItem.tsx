@@ -4,13 +4,22 @@ import CodeWithIcon from "./CodeWithIcon";
 import Duration from "./Duration";
 import StatusIcon from "./StatusIcon";
 import Log from "./Log";
-import {faSignOutAlt, faTerminal} from "@fortawesome/free-solid-svg-icons";
+import {faSignOutAlt, faTasks, faVirus, IconDefinition} from "@fortawesome/free-solid-svg-icons";
+import {faGitSquare} from "@fortawesome/free-brands-svg-icons";
 
 type TaskItemProps = {
     task: Task
 }
 
 class TaskItem extends Component<TaskItemProps, any> {
+
+    public getCommandIcon = (taskType: string): IconDefinition => {
+        switch (taskType) {
+            case "GIT": return faGitSquare;
+            case "COMMAND_LINE": return faTasks;
+            default: return faVirus;
+        }
+    }
 
     public render = (): ReactNode => {
         const task: Task = this.props.task;
@@ -24,7 +33,7 @@ class TaskItem extends Component<TaskItemProps, any> {
                 </div>
                 <div id={"collapse-" + key} className="collapse" aria-labelledby={"heading-" + key} data-parent="#tasks">
                     <div className="card-body">
-                        <CodeWithIcon icon={faTerminal} text={task.command} />
+                        <CodeWithIcon icon={this.getCommandIcon(task.type)} text={task.command} />
                         <CodeWithIcon display={task.exitCode > -1} icon={faSignOutAlt} text={"Process finished with exit code " + task.exitCode} />
                         <Duration item={task}/>
                     </div>

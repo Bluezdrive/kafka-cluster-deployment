@@ -1,5 +1,8 @@
 package de.volkerfaas.kafka.deployment.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import javax.persistence.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -12,10 +15,13 @@ public class Job extends Base {
     private String repository;
     private String branch;
     private Event event;
+    private Set<GitPollingLog> gitPollingLogs;
+    private Job reference;
 
     public Job() {
         super();
         this.tasks = new LinkedHashSet<>();
+        this.gitPollingLogs = new LinkedHashSet<>();
     }
 
     public Job(Event event, String repository, String branch) {
@@ -27,6 +33,7 @@ public class Job extends Base {
 
     @OneToMany(mappedBy = "job", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @OrderBy("orderId ASC")
+    @JsonManagedReference(value = "tasks")
     public Set<Task> getTasks() {
         return tasks;
     }
@@ -52,12 +59,35 @@ public class Job extends Base {
     }
 
     @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference(value = "event")
     public Event getEvent() {
         return event;
     }
 
     public void setEvent(Event event) {
         this.event = event;
+    }
+
+    @OneToMany(mappedBy = "job", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OrderBy("id DESC")
+    @JsonManagedReference(value = "git-polling-logs")
+    public Set<GitPollingLog> getGitPollingLogs() {
+        return gitPollingLogs;
+    }
+
+    public void setGitPollingLogs(Set<GitPollingLog> gitPollingLogs) {
+        this.gitPollingLogs = gitPollingLogs;
+    }
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference(value = "reference")
+    @JsonIdentityReference(alwaysAsId = true)
+    public Job getReference() {
+        return reference;
+    }
+
+    public void setReference(Job reference) {
+        this.reference = reference;
     }
 
     @Override

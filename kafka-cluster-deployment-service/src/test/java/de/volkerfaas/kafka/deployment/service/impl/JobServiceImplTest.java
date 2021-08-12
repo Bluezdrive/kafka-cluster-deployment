@@ -3,13 +3,14 @@ package de.volkerfaas.kafka.deployment.service.impl;
 import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.GitConfig;
 import de.volkerfaas.kafka.deployment.integration.GitRepository;
+import de.volkerfaas.kafka.deployment.integration.GitStatusRepository;
 import de.volkerfaas.kafka.deployment.integration.JobProducer;
 import de.volkerfaas.kafka.deployment.integration.JobRepository;
-import de.volkerfaas.kafka.deployment.service.BadEventException;
+import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -28,11 +29,14 @@ public class JobServiceImplTest {
         gitConfig.setSecret("v1xesaB.97bhj#76lHtio+9812bHGF");
         final Config config = new Config();
         config.setGit(gitConfig);
+        final JavaMailSender mailSender = mock(JavaMailSender.class);
         final GitRepository gitRepository = mock(GitRepository.class);
+        final GitStatusRepository gitStatusRepository = mock(GitStatusRepository.class);
         final JobRepository jobRepository = mock(JobRepository.class);
         final JobProducer jobProducer = mock(JobProducer.class);
-        final TaskService taskService = new TaskServiceImpl(config, gitRepository);
-        this.jobService = new JobServiceImpl(config, taskService, gitRepository, jobRepository, jobProducer);
+        final GitService gitService = new GitServiceImpl(config, gitRepository, gitStatusRepository);
+        final TaskService taskService = new TaskServiceImpl(config, gitService);
+        this.jobService = new JobServiceImpl(config, mailSender, taskService, gitService, jobRepository, jobProducer);
     }
 
     @Test

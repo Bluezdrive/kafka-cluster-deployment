@@ -4,33 +4,37 @@ import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.TaskConfig;
 import de.volkerfaas.kafka.deployment.controller.model.SkipablePageRequest;
 import de.volkerfaas.kafka.deployment.controller.model.github.PushEvent;
-import de.volkerfaas.kafka.deployment.integration.GitRepository;
 import de.volkerfaas.kafka.deployment.integration.JobProducer;
 import de.volkerfaas.kafka.deployment.integration.JobRepository;
 import de.volkerfaas.kafka.deployment.model.Event;
 import de.volkerfaas.kafka.deployment.model.Job;
 import de.volkerfaas.kafka.deployment.model.Status;
 import de.volkerfaas.kafka.deployment.model.Task;
-import de.volkerfaas.kafka.deployment.service.BadEventException;
-import de.volkerfaas.kafka.deployment.service.JobService;
-import de.volkerfaas.kafka.deployment.service.NotFoundException;
-import de.volkerfaas.kafka.deployment.service.TaskService;
+import de.volkerfaas.kafka.deployment.service.*;
+import de.volkerfaas.utils.MultiTaggedCounter;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.commons.codec.binary.Hex;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,26 +54,40 @@ public class JobServiceImpl implements JobService, Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobServiceImpl.class);
 
     private final Config config;
+    private final JavaMailSender javaMailSender;
     private final TaskService taskService;
-    private final GitRepository gitRepository;
+    private final GitService gitService;
     private final JobRepository jobRepository;
     private final JobProducer jobProducer;
     private final BlockingQueue<Long> queue;
 
+    private final Counter counterRepositoryChanged;
+    private final Counter counterRepositoryPolled;
+    private final MultiTaggedCounter counterJob;
+
     @Autowired
-    public JobServiceImpl(Config config, TaskService taskService, GitRepository gitRepository, JobRepository jobRepository, JobProducer jobProducer) {
+    public JobServiceImpl(Config config, JavaMailSender javaMailSender, TaskService taskService, GitService gitService, JobRepository jobRepository, JobProducer jobProducer) {
         this.config = config;
+        this.javaMailSender = javaMailSender;
+        this.gitService = gitService;
         this.taskService = taskService;
-        this.gitRepository = gitRepository;
         this.jobRepository = jobRepository;
         this.jobProducer = jobProducer;
         this.queue = new LinkedBlockingQueue<>();
-        Gauge.builder("job.queue.size", this.queue, Collection::size)
+
+        Gauge.builder("kcds.job.queue.size", this.queue, Collection::size)
                 .description("The number of jobs waiting to be executed")
                 .register(Metrics.globalRegistry);
-        Gauge.builder("jobs.total", this.jobRepository::count)
+        Gauge.builder("kcds.jobs.total", this.jobRepository::count)
                 .description("The number of jobs that haven been executed")
                 .register(Metrics.globalRegistry);
+        this.counterRepositoryChanged = Counter.builder("kcds.repository.changed")
+                .description("The number of changes made to the repository")
+                .register(Metrics.globalRegistry);
+        this.counterRepositoryPolled = Counter.builder("kcds.repository.polled")
+                .description("The number of times the repository has been polled")
+                .register(Metrics.globalRegistry);
+        this.counterJob = new MultiTaggedCounter("kcds.job", Metrics.globalRegistry, "status");
     }
 
     @PostConstruct
@@ -106,17 +124,38 @@ public class JobServiceImpl implements JobService, Runnable {
         return jobId;
     }
 
-    @Scheduled(fixedDelay = 60000)
-    public void triggerNewJob() throws GitAPIException, InterruptedException {
+    @Override
+    public long restartJob(long jobId) throws BadEventException, InterruptedException {
+        final Job job = jobRepository.findLatest().orElse(null);
+        if (Objects.nonNull(job) && !Objects.equals(Status.FAILED, job.getStatus())) {
+            throw new BadEventException("status of latest job", job.getStatus().toString());
+        }
+        Event event = new Event();
+        event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
         final String repository = config.getGit().getRepository();
         final String branch = config.getGit().getBranch();
-        if (hasRepositoryChanged(repository, branch)) {
+        final long restartedJobId = createJob(event, repository, branch, job);
+        queue.put(restartedJobId);
+        LOGGER.info("Put restarted job into queue with id {}", restartedJobId);
+
+        return restartedJobId;
+    }
+
+    @Scheduled(cron = "${config.git.cron:-}")
+    public void triggerNewJob() throws InterruptedException {
+        final Job job = jobRepository.findLatest().orElse(null);
+        final String repository = config.getGit().getRepository();
+        final String branch = config.getGit().getBranch();
+        if (gitService.isRepositoryChanged(repository, branch, job)) {
+            counterRepositoryChanged.increment();
+
             Event event = new Event();
             event.setRepositoryPushedAt(new Date(System.currentTimeMillis() / 1000));
             final long jobId = createJob(event, repository, branch);
             queue.put(jobId);
             LOGGER.info("Put job into queue with id {}", jobId);
         }
+        this.counterRepositoryPolled.increment();
     }
 
     @Override
@@ -142,12 +181,14 @@ public class JobServiceImpl implements JobService, Runnable {
                 final long id = Long.parseLong(e.getId().toString());
                 try {
                     finishJob(id);
-                } catch (NotFoundException ignored) {
+                } catch (NotFoundException | MessagingException | UnsupportedEncodingException ignored) {
                 }
             } catch (InterruptedException e) {
                 LOGGER.error("Interrupting with error", e);
                 Thread.currentThread().interrupt();
                 break;
+            } catch (MessagingException | UnsupportedEncodingException e) {
+                LOGGER.error("Error sending mail", e);
             }
         } while (true);
     }
@@ -167,6 +208,7 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     @Transactional
+    @Timed(value = "kcds.task.duration", description = "Time spent executing tasks")
     public void executeTasks(Job job) {
         for (Task task : job.getTasks()) {
             task.setStatus(Status.RUNNING);
@@ -187,10 +229,13 @@ public class JobServiceImpl implements JobService, Runnable {
         }
     }
 
-
-
     @Transactional
     public long createJob(Event event, String repository, String branch) {
+        return createJob(event, repository, branch, null);
+    }
+
+    @Transactional
+    public long createJob(Event event, String repository, String branch, Job reference) {
         final Job job = new Job(event, repository, branch);
         final Map<String, TaskConfig> taskConfigs = config.getTasks();
         final Set<Task> tasks = taskConfigs.entrySet().stream()
@@ -198,6 +243,7 @@ public class JobServiceImpl implements JobService, Runnable {
                 .map(entry -> taskService.create(job, entry.getKey(), entry.getValue()))
                 .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparingInt(Task::getOrderId))));
         job.setTasks(tasks);
+        job.setReference(reference);
         final Job createdJob = save(job);
         LOGGER.info("Created job {}", createdJob.getId());
 
@@ -205,21 +251,22 @@ public class JobServiceImpl implements JobService, Runnable {
     }
 
     @Transactional
-    public void finishJob(long jobId) throws NotFoundException {
+    public void finishJob(long jobId) throws NotFoundException, MessagingException, UnsupportedEncodingException {
         final Job job = jobRepository.findById(jobId).orElseThrow(() -> new NotFoundException(Job.class, jobId));
         finishJob(job);
     }
 
     @Transactional
-    public void finishJob(Job job) {
+    public void finishJob(Job job) throws MessagingException, UnsupportedEncodingException {
         final boolean allTasksSuccessful = job.getTasks().stream()
                 .map(Task::getStatus)
                 .map(status -> status == Status.SUCCESS)
                 .reduce(true, (previousTaskStatus, currentTaskStatus) -> previousTaskStatus && currentTaskStatus);
         job.setStatus(allTasksSuccessful ? Status.SUCCESS : Status.FAILED);
         job.setEndTimeMillis(System.currentTimeMillis());
+        counterJob.increment(job.getStatus().name());
         LOGGER.info("Finished job {}", job.getId());
-        save(job);
+        sendMail(save(job));
     }
 
     @Transactional
@@ -236,6 +283,28 @@ public class JobServiceImpl implements JobService, Runnable {
         return jobProducer.send(jobRepository.saveAndFlush(job));
     }
 
+    private void sendMail(Job job) throws MessagingException, UnsupportedEncodingException {
+        if (
+                Objects.isNull(config.getMail()) ||
+                StringUtils.isEmpty(config.getMail().getFrom()) ||
+                StringUtils.isEmpty(config.getMail().getTo()) ||
+                StringUtils.isEmpty(config.getMail().getHost())
+            ) {
+            return;
+        }
+
+        final MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        final MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+        final String text = "Kafka cluster deployment job #" + job.getId() + " finished " + (job.getStatus() == Status.SUCCESS ? "successfully" : "with errors");
+        helper.setFrom(config.getMail().getFrom(), config.getMail().getPersonal());
+        helper.setTo(config.getMail().getTo());
+        helper.setSubject(text);
+        helper.setText("<p>" + text + "</p>", true);
+        javaMailSender.send(mimeMessage);
+
+        LOGGER.info("Sent mail to {}", config.getMail().getTo());
+    }
+
     private String getBranchFromRef(String ref) {
         if (Objects.isNull(ref)) {
             return null;
@@ -245,36 +314,6 @@ public class JobServiceImpl implements JobService, Runnable {
             return null;
         }
         return items[2];
-    }
-
-    private boolean hasRepositoryChanged(String repository, String branch) throws GitAPIException {
-        final Job job = jobRepository.findLatest().orElse(null);
-        if (Objects.isNull(job)) {
-            return true;
-        }
-        final Event event = job.getEvent();
-        final String headCommitId = event.getHeadCommitId();
-        LOGGER.info("[poll] Last Built Revision: Revision {} (refs/remotes/origin/{})", headCommitId, branch);
-        final String uri = "git@github.com:" + repository + ".git";
-        final String remoteObjectId = gitRepository.getRemoteObjectId(uri, branch).orElse(null);
-        if (Objects.isNull(remoteObjectId)) {
-            return false;
-        }
-
-        final boolean hasChanged = !Objects.equals(headCommitId, remoteObjectId);
-        if (!hasChanged) {
-            switch (job.getStatus()) {
-                case SUCCESS -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - already built by {}", branch, remoteObjectId, job.getId());
-                case FAILED -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - already built with failure by {}", branch, remoteObjectId, job.getId());
-                case RUNNING -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - is building by {}", branch, remoteObjectId, job.getId());
-                case CREATED -> LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - to be build by {}", branch, remoteObjectId, job.getId());
-            }
-            LOGGER.info("No changes");
-        } else {
-            LOGGER.info("[poll] Latest remote head revision on refs/heads/{} is: {} - not yet build", branch, remoteObjectId);
-        }
-
-        return hasChanged;
     }
 
 }

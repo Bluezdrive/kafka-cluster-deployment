@@ -8,6 +8,7 @@ export type Task = Base & {
     command: string;
     exitCode: number;
     log: string;
+    type: string;
 }
 
 export type Event = {
@@ -31,6 +32,21 @@ export type Job = Base & {
     repository: string;
     branch: string;
     event: Event;
+    reference: number;
+}
+
+export type GitPollingLog = Base & {
+    repository: string;
+    branch: string;
+    headCommitId: string;
+    remoteObjectId: string;
+    changed: boolean;
+    error: string;
+    job: number;
+}
+
+export type Schedule = {
+    schedule: string;
 }
 
 export type Base = {
@@ -38,4 +54,18 @@ export type Base = {
     startTimeMillis: number;
     status: Status;
     endTimeMillis: number;
+    createdDate: number;
+    lastModifiedDate: number;
+}
+
+export type JobResponse = Error & {
+    jobId: number;
+}
+
+export type Error = {
+    timestamp: number;
+    status: number;
+    error: string;
+    message: string;
+    path: string;
 }

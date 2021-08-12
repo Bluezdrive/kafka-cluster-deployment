@@ -11,6 +11,7 @@ import java.util.Map;
 public class Config {
 
     private GitConfig git;
+    private MailConfig mail;
     private String workingDirectory;
     private Map<String, TaskConfig> tasks;
 
@@ -24,6 +25,14 @@ public class Config {
 
     public void setGit(GitConfig git) {
         this.git = git;
+    }
+
+    public MailConfig getMail() {
+        return mail;
+    }
+
+    public void setMail(MailConfig mail) {
+        this.mail = mail;
     }
 
     public String getWorkingDirectory() {

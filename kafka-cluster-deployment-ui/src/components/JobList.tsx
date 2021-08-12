@@ -1,5 +1,5 @@
 import React, {Component, ReactNode} from "react";
-import {Job} from "../models/Job";
+import {GitPollingLog, Job, Schedule} from "../models/Job";
 import JobButton from "./JobButton";
 import JobDetails from "./JobDetails";
 import "./JobList.css"
@@ -9,11 +9,14 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faExclamationTriangle, faSpinner} from "@fortawesome/free-solid-svg-icons";
 import Alert from "./Alert";
 import SockJS from "sockjs-client";
+// @ts-ignore
+import $ from 'jquery';
+import GitPollingLogDialog from "./GitPollingLogDialog";
 
 const PAGE_SIZE: number = 10;
 
 type JobListProps = {
-    topic: string
+    topic: string,
 }
 
 type JobListState = {
@@ -25,6 +28,8 @@ type JobListState = {
     skip: number;
     page: number;
     total: number;
+    gitPollingLog?: GitPollingLog;
+    schedule?: string;
 }
 
 class JobList extends Component<JobListProps, JobListState> {
@@ -35,10 +40,17 @@ class JobList extends Component<JobListProps, JobListState> {
     constructor(props: JobListProps) {
         super(props);
 
-        const url: string = "http://localhost:8080/ws";
+        const url: string = window.location.protocol + "//" + window.location.host + "/ws";
         this.state = this.initState();
         this.client = new Client({
-            webSocketFactory: () => new SockJS(url),
+            // TODO: Retrieve Authorization Header from somewhere else
+            // connectHeaders: {
+            //     Authorization: 'Basic ' + btoa( "<username>:<password>")
+            // },
+            // TODO: Enable secure websocket connections
+            webSocketFactory: () => new SockJS(url, null, {
+                transports: ["xhr-streaming", "xhr-polling"]
+            }),
             onConnect: this.handleOnConnect,
             onWebSocketError: (event: ErrorEvent) => {
                 this.setState({
@@ -61,6 +73,7 @@ class JobList extends Component<JobListProps, JobListState> {
     }
 
     public componentDidMount = (): void => {
+        this.loadSchedule();
         this.client.activate();
     }
 
@@ -80,11 +93,29 @@ class JobList extends Component<JobListProps, JobListState> {
             loaded: false,
             skip: 0,
             page: 0,
-            total: 0
+            total: 0,
+            gitPollingLog: undefined
         };
     }
 
-    private fetch = (skip: number, page: number): Promise<Page<Job>> => {
+    private fetchGitPollingLog = (): Promise<GitPollingLog> => {
+        const url: string = '/api/gitPollingLogs/latest';
+        return fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then((response: Response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw response.statusText;
+            }
+        });
+    }
+
+    private fetchJobs = (skip: number, page: number): Promise<Page<Job>> => {
         const url: string = '/api/jobs?skip=' + skip + '&page=' + page + '&size=' + PAGE_SIZE + '&sort=id,desc';
         return fetch(url, {
             method: 'GET',
@@ -102,6 +133,38 @@ class JobList extends Component<JobListProps, JobListState> {
             });
     }
 
+    private fetchSchedule = (): Promise<Schedule> => {
+        const url: string = '/api/gitPollingLogs/schedule';
+        return fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((response: Response) => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    throw response.statusText;
+                } else {
+                    throw response.statusText;
+                }
+            })
+            .catch(error => console.log("App.fetchSchedule", error));
+    }
+
+    private loadSchedule = (): void => {
+        this.fetchSchedule()
+            .then((schedule: Schedule) => {
+                if (schedule) {
+                    this.setState({
+                        schedule: schedule.schedule
+                    });
+                }
+            })
+    }
+
     private readonly handleOnClickJobButton = (jobId: number): void => {
         const jobs: Job[] = this.state.jobs;
         this.setState({
@@ -112,7 +175,7 @@ class JobList extends Component<JobListProps, JobListState> {
 
     private readonly handleOnClickLoadMoreJobsButton = (): void => {
         let page: number = this.state.page + 1;
-        this.fetch(this.state.skip, page)
+        this.fetchJobs(this.state.skip, page)
             .then((page: Page<Job>) => page.content)
             .then((newJobs: Job[]) => {
                 const jobs: Job[] = this.state.jobs;
@@ -141,7 +204,7 @@ class JobList extends Component<JobListProps, JobListState> {
             page: 0,
             total: 0,
         });
-        this.fetch(this.state.skip, 0)
+        this.fetchJobs(this.state.skip, 0)
             .then((page: Page<Job>) => {
                 this.setState({
                     total: page.totalElements
@@ -216,6 +279,17 @@ class JobList extends Component<JobListProps, JobListState> {
         }
     }
 
+    public handleOnClickGitPollingLogButton = (): void => {
+        this.fetchGitPollingLog()
+            .then((gitPollingLog: GitPollingLog) => {
+                this.setState({
+                    gitPollingLog: gitPollingLog
+                })
+                $('#exampleModal').modal('show')
+            })
+
+    }
+
     public render = (): ReactNode => {
         const jobs: Job[] = this.state.jobs;
         if (this.state.error) {
@@ -228,11 +302,15 @@ class JobList extends Component<JobListProps, JobListState> {
                     <div className="col-md-4">
                         <div className="list-scroll">
                             <div className="list-group">
-                                {jobs.map(job => <JobButton key={job.id} active={this.state.jobId === job.id} job={job} handleOnClick={this.handleOnClickJobButton}/>)}
+                                {jobs.map((job: Job, index: number) => <JobButton key={job.id} active={this.state.jobId === job.id} job={job} firstItem={index === 0} handleOnClick={this.handleOnClickJobButton}/>)}
                                 <div hidden={jobs.length >= this.state.total} className="list-group-item">
                                     <button className={"btn btn-sm btn-block btn-primary"} onClick={this.handleOnClickLoadMoreJobsButton}>Load more jobs...</button>
                                 </div>
                             </div>
+                        </div>
+                        <div className="github-status pt-3" hidden={!this.state.schedule}>
+                            <button type="button" className={"btn btn-info btn-sm"} onClick={this.handleOnClickGitPollingLogButton}>Git Polling Log</button>
+                            <GitPollingLogDialog gitPollingLog={this.state.gitPollingLog} />
                         </div>
                     </div>
                     <div className="col-md-8 pl-md-0 pt-3 pt-md-0">

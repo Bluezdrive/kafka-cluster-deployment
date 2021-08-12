@@ -2,11 +2,11 @@ package de.volkerfaas.kafka.deployment.service.impl;
 
 import de.volkerfaas.kafka.deployment.config.Config;
 import de.volkerfaas.kafka.deployment.config.TaskConfig;
-import de.volkerfaas.kafka.deployment.integration.GitRepository;
 import de.volkerfaas.kafka.deployment.model.Job;
 import de.volkerfaas.kafka.deployment.model.Status;
 import de.volkerfaas.kafka.deployment.model.Task;
 import de.volkerfaas.kafka.deployment.model.TaskType;
+import de.volkerfaas.kafka.deployment.service.GitService;
 import de.volkerfaas.kafka.deployment.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,8 +39,8 @@ public class TaskServiceImplTest {
         this.config = new Config();
         this.config.setWorkingDirectory("/home/workspace/repository");
         this.config.getTasks().put(LIST_FILES_KEY, taskConfig);
-        final GitRepository gitRepository = mock(GitRepository.class);
-        this.taskService = new TaskServiceImpl(config, gitRepository);
+        final GitService gitService = mock(GitService.class);
+        this.taskService = new TaskServiceImpl(config, gitService);
     }
 
     @Test

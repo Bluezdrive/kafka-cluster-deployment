@@ -24,7 +24,7 @@ public class TaskProgressMonitor implements ProgressMonitor {
     @Override
     public void beginTask(String title, int totalWork) {
         LOGGER.info("Git - {}: {}", title, totalWork);
-        task.setLog(task.getLog().concat(title + ": " + totalWork).concat(System.lineSeparator()));
+        task.addLog(title + ": " + totalWork);
     }
 
     @Override
